@@ -1,0 +1,12 @@
+Temptative list of the authors library.
+It surely is not perfect and surely important contribution are missing.
+
+    Angus Johnson
+        Author of Clipper, the library used for boolean operation.
+    Lucas H. Gabrielli
+        Original author of GDSPY from which most of pygdsdesign is based on.
+    Étienne Dumur
+        First author of pygdsdesign. Added tranmission line capability.
+    Sacha Wos
+        Realized the transition from python 3.8 to python 3.11 which implied
+        getting rid of GDSPY all together and directly use clipper library.
