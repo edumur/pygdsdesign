@@ -1,23 +1,29 @@
 # pygdsdesign
 
+Pydesign is a Python library designed to generate GDS files with Python scripts. The library's is built upon code from GDSpy, a popular open-source toolkit for layout design and manipulation. Moreover, Pydesign use the power of Clipper, to execute precise boolean operations. 
+
 ## ⚙️ Installation
+
+Since Pydesign incorporates C++ code that requires compilation (Clipper), ensure that your development environment supports compilation. 
+For instance, you can use Microsoft Visual C++ for Windows.
 
 To install pygdsdesign, simply run:
 `pip install .`
 
-You can also add the `-e` flag if you want to install the library in editable mode.
+(You can also add the `-e` flag if you want to install the library in editable mode.)
 
+After installing the library, it is recommended to verify the installation to ensure that all the code functions correctly. To do this, use pytest and run the tests provided in the examples folder.
 
 ## 🖼️ Gallery
 
 Example of what you can do with pygdsdesign
 ### Spiral resonator
 
-![spiral resonator](Examples/spiral_resonator.png "spiral resonator")
+![spiral resonator](examples/spiral_resonator.png "spiral resonator")
 
 ### CPW resonators
 
-![cpw resonators](Examples/cpw_resonators.png "cpw resonators")
+![cpw resonators](examples/cpw_resonators.png "cpw resonators")
 
 
 ## 🛠️ How to start
