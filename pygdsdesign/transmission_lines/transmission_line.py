@@ -163,7 +163,7 @@ class TransmissionLine(PolygonSet):
         f_dx = InterpolatedUnivariateSpline(t, dx)
         f_dy = InterpolatedUnivariateSpline(t, dy)
 
-        quad = quad(curve_length, t[0], t[-1])[0]
+        quadr = quadr(curve_length, t[0], t[-1])[0]
 
         return dx, dy, t, x, y, f_dx, f_dy, quad
 
