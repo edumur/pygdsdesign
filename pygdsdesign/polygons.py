@@ -211,7 +211,7 @@ class Text(PolygonSet):
 
     Examples
     --------
-    >>> text = gdspy.Text('Sample text', 20, (-10, -100))
+    >>> text = Text('Sample text', 20, (-10, -100))
     >>> myCell.add(text)
     """
 

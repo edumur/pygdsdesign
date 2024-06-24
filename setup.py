@@ -19,6 +19,11 @@ setup(name='pygdsdesign',
       license='BSL',
       packages=find_packages(),
       ext_modules = [Extension("clipper", ["pygdsdesign/clipper/clipper.cpp"])],
+      install_requires=[
+          'numpy',
+          'pytest',
+          'scipy',
+          'tqdm',
+          'typing_extensions',
+      ],
       )
-
-

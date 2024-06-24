@@ -2,7 +2,7 @@ from functools import lru_cache, partial
 from typing import Optional, Union, Tuple
 from scipy.special import fresnel
 from typing import Literal, Dict, Callable
-from scipy.interpolate import interp1d, InterpolatedUnivariateSpline
+from scipy.interpolate import InterpolatedUnivariateSpline
 from scipy.integrate import quad
 from scipy.special import fresnel
 from scipy.optimize import fsolve
@@ -163,9 +163,9 @@ class TransmissionLine(PolygonSet):
         f_dx = InterpolatedUnivariateSpline(t, dx)
         f_dy = InterpolatedUnivariateSpline(t, dy)
 
-        quadr = quadr(curve_length, t[0], t[-1])[0]
+        length = quad(curve_length, t[0], t[-1])[0]
 
-        return dx, dy, t, x, y, f_dx, f_dy, quad
+        return dx, dy, t, x, y, f_dx, f_dy, length
 
 
 

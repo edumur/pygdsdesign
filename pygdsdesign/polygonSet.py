@@ -8,7 +8,6 @@ _mpone = np.array((-1.0, 1.0))
 from io import IOBase
 
 
-import clipper as clipper2
 from pygdsdesign.typing_local import Coordinate, Coordinates
 
 
@@ -52,7 +51,7 @@ class PolygonSet():
                                     (self.colors, self.colors[-1])]:
             while len(arg) < max_length:
                 arg.append(last_element)
-                
+
     def __gt__(self, point: Coordinate) -> Self:
         """
         Add a vertice to the polygon in respect to the last vertice coordinate
@@ -97,7 +96,7 @@ class PolygonSet():
         self.datatypes = self.datatypes + polygon.datatypes
         self.names = self.names + polygon.names
         self.colors = self.colors + polygon.colors
-        
+
         return self
 
 

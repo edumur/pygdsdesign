@@ -273,7 +273,7 @@ class MicroStrip(TransmissionLine):
 
 
         # All the computations are stored in self.calc to cache the result
-        dx, dy, t, x, y, f_dx, f_dy, quad = self.calc(radius, nb_points)
+        dx, dy, t, x, y, f_dx, f_dy, length = self.calc(radius, nb_points)
 
         # Prepare functions for the parametric generation
         # Initialize func and dfunc with some values to reuse them later on
@@ -300,7 +300,7 @@ class MicroStrip(TransmissionLine):
             compute_length = True
 
         if compute_length:
-            self._fresnel_lengths[radius] = quad
+            self._fresnel_lengths[radius] = length
 
         self.total_length += self._fresnel_lengths[radius]
         t = np.linspace(0, 1, nb_points)*self._fresnel_lengths[radius]

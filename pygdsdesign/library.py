@@ -1,5 +1,3 @@
-import asyncio
-import sys
 from typing import List
 
 from pathlib import Path
@@ -903,8 +901,8 @@ class Cell(object):
 
         Examples
         --------
-        >>> cell = gdspy.Cell('MAIN')
-        >>> cell.add(gdspy.Rectangle((0, 0), (10, 10), layer=1))
+        >>> cell = Cell('MAIN')
+        >>> cell.add(Rectangle((0, 0), (10, 10), layer=1))
         >>> # Define fill and stroke for layer 1 and datatype 0
         >>> mystyle = {(1, 0): {'fill': '#CC00FF',
                                 'stroke': 'black'}}
@@ -2290,7 +2288,7 @@ class GdsLibrary(object):
         Notes
         -----
         This is equivalent to:
-        >>> cell = gdspy.Cell(name)
+        >>> cell = Cell(name)
         >>> lib.add(cell, False, overwrite_duplicate, update_references)
         """
         cell = Cell(name)
@@ -2450,7 +2448,7 @@ class GdsLibrary(object):
         Notes
         -----
         This is equivalent to:
-        >>> cell = gdspy.Cell(name)
+        >>> cell = Cell(name)
         >>> lib.add(cell, False, overwrite_duplicate, update_references)
         """
         # print('overwrite_duplicate', overwrite_duplicate)
@@ -3053,10 +3051,9 @@ class GdsLibrary(object):
             category=DeprecationWarning,
             stacklevel=2,
         )
-        import gdspy
 
         cell = self.cells.get(cell, cell)
-        gdspy.current_library.add(
+        current_library.add(
             cell, include_dependencies=True, overwrite_duplicate=overwrite_duplicate
         )
         return cell
@@ -3098,10 +3095,10 @@ class GdsWriter(object):
 
     Examples
     --------
-    >>> writer = gdspy.GdsWriter('out-file.gds', unit=1.0e-6,
+    >>> writer = GdsWriter('out-file.gds', unit=1.0e-6,
     ...                          precision=1.0e-9)
     >>> for i in range(10):
-    ...     cell = gdspy.Cell('C{}'.format(i), True)
+    ...     cell = Cell('C{}'.format(i), True)
     ...     # Add the contents of this cell...
     ...     writer.write_cell(cell)
     ...     # Clear the memory: erase Cell objects and any other objects

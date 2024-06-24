@@ -259,7 +259,7 @@ def merge(polygons) -> PolygonSet:
                      datatypes=[datatype],
                      names=[name],
                      colors=[color])
-   
+
     for (layer, datatype, name, color), poly in layers.items():
         temp = boolean(poly, [],
                        'or',
@@ -292,7 +292,7 @@ def _gather_polys(args):
     if args is None:
         warnings.warn("[pygdsdesign] You try to '_gather_polys' on empty polygonSets",stacklevel=4)
         return []
-    
+
     if isinstance(args, PolygonSet):
         return [p for p in args.polygons]
 
@@ -342,8 +342,8 @@ def slice(polygons, position, axis, precision=1e-3, layer=0, datatype=0):
 
     Examples
     --------
-    >>> ring = gdspy.Round((0, 0), 10, inner_radius = 5)
-    >>> result = gdspy.slice(ring, [-7, 7], 0)
+    >>> ring = Round((0, 0), 10, inner_radius = 5)
+    >>> result = slice(ring, [-7, 7], 0)
     >>> cell.add(result[1])
     """
     polys = _gather_polys(polygons)
@@ -431,7 +431,7 @@ def offset(polygons: PolygonSet,
     if len(result) == 0:
         warnings.warn("[pygdsdesign] The result of 'offset' is None",stacklevel=4,)
         return None
-    
+
     return PolygonSet(result, [layer]*len(result), [datatype]*len(result), [name]*len(result), [color]*len(result))
 
 
@@ -556,14 +556,14 @@ def grid_cover(polygons: PolygonSet,
                         [p],
                         'and',
                         1000)
-            
+
             # Boolean operation
             r = PolygonSet(polys,
                       layers=[layer]*len(polys),
                       datatypes=[datatype]*len(polys),
                       names=[name]*len(polys),
                       colors=[color]*len(polys))
-    
+
             if r is not None:
                 resultPoly += r
     else:
@@ -600,7 +600,7 @@ def inverse_polarity(polygons: PolygonSet,
     if len(result) == 0:
         warnings.warn("[pygdsdesign] The result of 'inverse_polarity' is None",stacklevel=4,)
         return None
-    
+
     return PolygonSet(result, [layer]*len(result), [datatype]*len(result), [name]*len(result), [color]*len(result))
 
 
@@ -642,7 +642,7 @@ def inside(points: Coordinates,
     else:
         pts = points
         sc = 1 if short_circuit == "any" else -1
-        
+
     return clipper.inside(pts, polys, sc, 1 / precision)
 
 
@@ -669,8 +669,8 @@ def copy(obj: Any,
 
     Examples
     --------
-    >>> rectangle = gdspy.Rectangle((0, 0), (10, 20))
-    >>> rectangle2 = gdspy.copy(rectangle, 2,0)
+    >>> rectangle = Rectangle((0, 0), (10, 20))
+    >>> rectangle2 = copy(rectangle, 2,0)
     >>> myCell.add(rectangle)
     >>> myCell.add(rectangle2)
     """
