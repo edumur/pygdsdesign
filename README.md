@@ -4,6 +4,16 @@ PyGDSdesign is a Python library designed to generate GDS files with Python scrip
 
 ## ⚙️ Installation
 
+### 🐍 From pypi
+
+The simplest way is to install PyGDSdesign from pypi. Ensure that you have the required dependencies by running
+```bash
+conda install numpy scipy tqdm typing_extensions
+```
+Then just run `pip install pygdsdesign`.
+
+### ⚒️ From source
+
 Since PyGDSdesign incorporates C++ code that requires compilation (Clipper), ensure that your development environment supports compilation.
 For instance, you can use Microsoft Visual C++ for Windows.
 
