@@ -1,15 +1,16 @@
 from pygdsdesign import *
 import json
+import os
 import pytest
 
+PATH = os.path.dirname(os.path.realpath(__file__))
 
 
-
-with open('polygons.json') as f:
+with open(os.path.join(PATH, 'polygons.json')) as f:
     polygons = json.load(f)
 
 
-with open('results.json') as f:
+with open(os.path.join(PATH, 'results.json')) as f:
     results = json.load(f)
 
 
@@ -81,7 +82,7 @@ def test_get_center(square,cross,triangle):
     #Check x flip
     poly = PolygonSet([[(1,2),(3,4)]])
     result = poly.get_center()
-    assert result == (2.0, 3.0) 
+    assert result == (2.0, 3.0)
 
 
 

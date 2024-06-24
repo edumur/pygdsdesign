@@ -1,15 +1,16 @@
 from pygdsdesign import *
 import json
+import os
 import pytest
 
+PATH = os.path.dirname(os.path.realpath(__file__))
 
 
-
-with open('polygons.json') as f:
+with open(os.path.join(PATH, 'polygons.json')) as f:
     polygons = json.load(f)
 
 
-with open('results.json') as f:
+with open(os.path.join(PATH, 'results.json')) as f:
     results = json.load(f)
 
 
@@ -52,7 +53,7 @@ def test_boolean(square,cross,triangle):
     result = boolean(cross,cross, "or")
     assert np.isclose(np.asarray(result.polygons), np.asarray(result.polygons)).all()
 
-    # Check a basic XOR 
+    # Check a basic XOR
     result = boolean(cross, triangle, "xor")
     for i in range(len(results['boolean']['3'])):
         assert np.isclose(np.asarray(results['boolean']['3'][i]), np.asarray(result.polygons[i])).all()
@@ -73,4 +74,3 @@ def test_inverse_polarity(square,cross,triangle):
     result = inverse_polarity(cross)
     for i in range(len(results['inverse_polarity']['1'])):
         assert np.isclose(np.asarray(results['inverse_polarity']['1'][i]), np.asarray(result.polygons[i])).all()
-    
