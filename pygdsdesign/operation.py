@@ -7,12 +7,11 @@ import numpy as np
 import clipper
 from pygdsdesign.polygons import Rectangle
 from pygdsdesign.polygonSet import PolygonSet
-from pygdsdesign.library import CellReference, CellArray
-from pygdsdesign.typing_local import Coordinate, Coordinates
+from pygdsdesign.typing_local import Coordinates
 
 
 def boolean(operand1: PolygonSet,
-            operand2: PolygonSet,
+            operand2: PolygonSet|list,
             operation: Literal['or', 'and', 'xor', 'not'],
             precision: float=0.001,
             layer: int=0,
@@ -230,7 +229,13 @@ def crop(
             Must be 'top', 'right', 'bottom' or 'left'.
         value: value of the crop in um
     """
-    ((x0, y0), (x1, y1)) = polygons.get_bounding_box()
+    bounding_box = polygons.get_bounding_box()
+
+    if bounding_box is None:
+        warnings.warn("[pygdsdesign] Can't crop a polygon with a null area.")
+        return None
+
+    ((x0, y0), (x1, y1)) = bounding_box
 
     if orientation=='top':
         t = Rectangle((x0, y0), (x1, y1-value))
@@ -260,11 +265,13 @@ def merge(polygons) -> PolygonSet:
             layers[(layer, datatype, name, color)] = [poly]
 
     # Merge all polygons layer per layer
-    tot = PolygonSet(polygons=[[(0,0)]],
-                     layers=[layer],
-                     datatypes=[datatype],
-                     names=[name],
-                     colors=[color])
+    tot = PolygonSet(
+        polygons=[np.array([[0.0, 0.0]])],
+        layers=[layer],
+        datatypes=[datatype],
+        names=[name],
+        colors=[color],
+    )
 
     for (layer, datatype, name, color), poly in layers.items():
         temp = boolean(poly, [],

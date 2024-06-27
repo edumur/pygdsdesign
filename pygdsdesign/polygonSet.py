@@ -512,6 +512,126 @@ class PolygonSet():
         return self
 
 
+    def fillet(self, radius: float|np.ndarray|list,
+                     points_per_2pi: int=128) -> Self:
+        """
+        Round the corners of these polygons and fractures them into
+        polygons with less vertices if necessary.
+
+        Parameters
+        ----------
+        radius : number, array-like
+            Radius of the corners.  If number: all corners filleted by
+            that amount.  If array: specify fillet radii on a
+            per-polygon basis (length must be equal to the number of
+            polygons in this `PolygonSet`).  Each element in the array
+            can be a number (all corners filleted by the same amount) or
+            another array of numbers, one per polygon vertex.
+            Alternatively, the array can be flattened to have one radius
+            per `PolygonSet` vertex.
+        points_per_2pi : integer
+            Number of vertices used to approximate a full circle.  The
+            number of vertices in each corner of the polygon will be the
+            fraction of this number corresponding to the angle
+            encompassed by that corner with respect to 2 pi.
+
+        Returns
+        -------
+        out : `PolygonSet`
+            This object.
+        """
+        two_pi = 2 * np.pi
+
+        if np.isscalar(radius):
+            radii = [[radius] * p.shape[0] for p in self.polygons]
+        else:
+            assert isinstance(radius, np.ndarray)
+            if len(radius) == len(self.polygons):
+                radii = []
+                for r, p in zip(radius, self.polygons):
+                    if np.isscalar(r):
+                        radii.append([r] * p.shape[0])
+                    else:
+                        if len(r) != p.shape[0]:
+                            raise ValueError(
+                                "[GDSPY] Wrong length in fillet radius list.  "
+                                "Found {} radii for polygon with {} vertices.".format(
+                                    len(r), len(p.shape[0])
+                                )
+                            )
+                        radii.append(r)
+            else:
+                total = sum(p.shape[0] for p in self.polygons)
+                if len(radius) != total:
+                    raise ValueError(
+                        "[GDSPY] Wrong length in fillet radius list.  "
+                        "Expected lengths are {} or {}; got {}.".format(
+                            len(self.polygons), total, len(radius)
+                        )
+                    )
+                radii = []
+                n = 0
+                for p in self.polygons:
+                    radii.append(radius[n : n + p.shape[0]])
+                    n += p.shape[0]
+
+        for jj in range(len(self.polygons)):
+            vec = self.polygons[jj].astype(float) - np.roll(self.polygons[jj], 1, 0)
+            length = (vec[:, 0] ** 2 + vec[:, 1] ** 2) ** 0.5
+            ii = np.flatnonzero(length)
+            if len(ii) < len(length):
+                self.polygons[jj] = np.array(self.polygons[jj][ii])
+                radii[jj] = [radii[jj][i] for i in ii]
+                vec = self.polygons[jj].astype(float) - np.roll(
+                    self.polygons[jj], 1, 0
+                )
+                length = (vec[:, 0] ** 2 + vec[:, 1] ** 2) ** 0.5
+            vec[:, 0] = vec[:, 0] / length
+            vec[:, 1] = vec[:, 1] / length
+            dvec = np.roll(vec, -1, 0) - vec
+            norm = (dvec[:, 0] ** 2 + dvec[:, 1] ** 2) ** 0.5
+            ii = np.flatnonzero(norm)
+            dvec[ii, 0] = dvec[ii, 0] / norm[ii]
+            dvec[ii, 1] = dvec[ii, 1] / norm[ii]
+            dot = np.roll(vec, -1, 0) * vec
+            theta = np.arccos(dot[:, 0] + dot[:, 1])
+            ct = np.cos(theta * 0.5)
+            tt = np.tan(theta * 0.5)
+
+            new_points = []
+            for ii in range(-1, len(self.polygons[jj]) - 1):
+                if theta[ii] > 1e-6:
+                    a0 = -vec[ii] * tt[ii] - dvec[ii] / ct[ii]
+                    a0 = np.arctan2(a0[1], a0[0])
+                    a1 = vec[ii + 1] * tt[ii] - dvec[ii] / ct[ii]
+                    a1 = np.arctan2(a1[1], a1[0])
+                    if a1 - a0 > np.pi:
+                        a1 -= two_pi
+                    elif a1 - a0 < -np.pi:
+                        a1 += two_pi
+                    n = max(
+                        int(np.ceil(abs(a1 - a0) / two_pi * points_per_2pi) + 0.5), 2
+                    )
+                    a = np.linspace(a0, a1, n)
+                    ll = radii[jj][ii] * tt[ii]
+                    if ll > 0.49 * length[ii]:
+                        r = 0.49 * length[ii] / tt[ii]
+                        ll = 0.49 * length[ii]
+                    else:
+                        r = radii[jj][ii]
+                    if ll > 0.49 * length[ii + 1]:
+                        r = 0.49 * length[ii + 1] / tt[ii]
+                    new_points.extend(
+                        r * dvec[ii] / ct[ii]
+                        + self.polygons[jj][ii]
+                        + np.vstack((r * np.cos(a), r * np.sin(a))).transpose()
+                    )
+                else:
+                    new_points.append(self.polygons[jj][ii])
+            self.polygons[jj] = np.array(new_points)
+        return self
+
+
     def change_layer(self, layer: Optional[int]=None,
                            datatype: Optional[int]=None,
                            color: Optional[str]=None,
