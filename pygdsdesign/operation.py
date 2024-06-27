@@ -212,9 +212,15 @@ def difference(operand1: PolygonSet,
     return boolean(operand1, operand2, "xor", precision, layer, datatype, name, color)
 
 
-def crop(polygons: PolygonSet,
-         orientation: Literal['top', 'right', 'bottom', 'left'],
-         value: float) -> Optional[PolygonSet]:
+def crop(
+    polygons: PolygonSet,
+    orientation: Literal["top", "right", "bottom", "left"],
+    value: float,
+    layer: int = 0,
+    datatype: int = 0,
+    name: str = "",
+    color: str = "",
+) -> Optional[PolygonSet]:
     """
     Crop a polygon or a collection of polygon by a certain value from a certain
     direction
@@ -237,7 +243,7 @@ def crop(polygons: PolygonSet,
     else:
         raise ValueError("orientation must be 'top', 'right', 'bottom' or 'left'")
 
-    return boolean(polygons, t, 'and')
+    return boolean(polygons, t, 'and', layer=layer, datatype=datatype, name=name, color=color)
 
 
 def merge(polygons) -> PolygonSet:
@@ -433,35 +439,6 @@ def offset(polygons: PolygonSet,
         return None
 
     return PolygonSet(result, [layer]*len(result), [datatype]*len(result), [name]*len(result), [color]*len(result))
-
-
-def crop(self,
-        orientation: Literal['top', 'right', 'bottom', 'left'],
-        value: float,
-        max_points: int=1000) -> PolygonSet:
-    """
-    Crop a polygon or a collection of polygon by a certain value from a certain
-    direction
-
-    Args:
-        orientation: the orientation of the crop.
-            Must be 'top', 'right', 'bottom' or 'left'.
-        value: value of the crop in um
-        max_points: number of points of the resulting polygon
-    """
-    ((x0, y0), (x1, y1)) = self.get_bounding_box()
-    if orientation=='top':
-        t = Rectangle((x0, y0), (x1, y1-value))
-    elif orientation=='right':
-        t = Rectangle((x0, y0), (x1-value, y1))
-    elif orientation=='bottom':
-        t = Rectangle((x0, y0+value), (x1, y1))
-    elif orientation=='left':
-        t = Rectangle((x0+value, y0), (x1, y1))
-    else:
-        raise ValueError("orientation must be 'top', 'right', 'bottom' or 'left'")
-
-    return boolean(self, t, 'and')
 
 
 def grid_cover(polygons: PolygonSet,
