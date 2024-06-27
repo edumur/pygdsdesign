@@ -103,7 +103,7 @@ def addition(operand1: PolygonSet,
     return boolean(operand1, operand2, "or", precision, layer, datatype, name, color)
 
 
-def substraction(operand1: PolygonSet,
+def subtraction(operand1: PolygonSet,
                  operand2: PolygonSet,
                  precision: float=0.001,
                  layer: int=0,
