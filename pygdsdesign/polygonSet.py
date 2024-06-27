@@ -52,6 +52,7 @@ class PolygonSet():
             while len(arg) < max_length:
                 arg.append(last_element)
 
+
     def __gt__(self, point: Coordinate) -> Self:
         """
         Add a vertice to the polygon in respect to the last vertice coordinate
@@ -67,7 +68,7 @@ class PolygonSet():
         return self
 
 
-    def __add__(self, polygon: List[np.ndarray]) -> Self:
+    def __add__(self, polygon: Self) -> Self:
         """
         Add two polygons together
 
@@ -98,8 +99,6 @@ class PolygonSet():
         self.colors = self.colors + polygon.colors
 
         return self
-
-
 
 
     def __str__(self) -> str:

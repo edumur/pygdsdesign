@@ -574,7 +574,12 @@ def inverse_polarity(polygons: PolygonSet,
     safety_marge : float
         Marge added for the polarity inversion.
     """
-    a, b = polygons.get_bounding_box()
+    bounding_box = polygons.get_bounding_box()
+
+    if bounding_box is None:
+        warnings.warn("[pygdsdesign] Can't inverse_polarity a polygon with a null area.")
+        return None
+    a, b = bounding_box
     r = Rectangle((a[0]-safety_marge, a[1]-safety_marge),
                   (b[0]+safety_marge, b[1]+safety_marge))
     poly1 = r.polygons
@@ -619,6 +624,7 @@ def inside(points: Coordinates,
         groups is inside the set of polygons.
     """
     polys = _gather_polys(polygons)
+    pts: Tuple[List[np.ndarray]]|Coordinates
 
     if np.isscalar(points[0][0]):
         pts = (points,)
@@ -668,7 +674,7 @@ def copy(obj: Any,
 def select_polygon_per_layer(polygons: PolygonSet,
                              layer: int,
                              datatype: int=0,
-                             merge: bool=False) -> PolygonSet:
+                             merging: bool=False) -> PolygonSet:
     """
     Return a copy of the polygon(s) corresponding to the given layer and
     datatype.
@@ -679,7 +685,7 @@ def select_polygon_per_layer(polygons: PolygonSet,
         layer : Layer number.
         datatype: gds datatype of the grid cover.
             Defaults to 0.
-        merge : If merge is True, merge before returning.
+        merging : If merging is True, merge before returning.
             Defaults to False.
     """
 
@@ -704,7 +710,7 @@ def select_polygon_per_layer(polygons: PolygonSet,
     tot.colors    = list(np.array(polygons.colors)[mask])
     tot.names     = list(np.array(polygons.names)[mask])
 
-    if merge:
+    if merging:
         return merge(tot)
     else:
         return tot
