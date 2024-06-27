@@ -694,7 +694,7 @@ class MicroStrip(TransmissionLine):
         else:
             it = lambda t: t
 
-        poly = PolygonSet([[(0, 0)]])
+        poly = PolygonSet()
         for t in it(ts):
 
             # Compute the coordinate and angle of the curve at the distance t

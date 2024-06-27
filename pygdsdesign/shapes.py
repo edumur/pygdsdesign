@@ -155,7 +155,7 @@ def global_marks_ebeam(w: float=10,
     """
 
     # Make the crosse
-    cross = PolygonSet([[(0, 0)]])
+    cross = PolygonSet()
     cross += Rectangle((0, 0), (w, l), layer=layer, datatype=datatype, color=color, name=name).center()
     cross += Rectangle((0, 0), (l, w), layer=layer, datatype=datatype, color=color, name=name).center()
 
@@ -176,7 +176,7 @@ def global_marks_ebeam(w: float=10,
 
 
     if directional_structures:
-        temp = PolygonSet([[(0, 0)]])
+        temp = PolygonSet()
 
         # Create a default triangle with the proper orientation
         t = PolygonSet([[(0, 0), (directional_structures_length, 0), (directional_structures_length/2, 2*directional_structures_length)]])
@@ -204,11 +204,11 @@ def global_marks_ebeam(w: float=10,
 
         # In case the boolean operation return nothing (too small cross for instance)
         if temp3 is None:
-            return PolygonSet([[(0, 0)]])
+            return PolygonSet()
 
         # We remove the triangles which have been cut from previous boolean
         # operation and are now too small
-        temp4 = PolygonSet([[(0, 0)]])
+        temp4 = PolygonSet()
         for p in temp3.polygons:
             t=PolygonSet([p], layers=[layer], datatypes=[datatype], colors=[color], names=[name])
             if t.area()>0.9*directional_structures_length*directional_structures_length:
@@ -234,7 +234,7 @@ def chip_marks_ebeam(layer: int=1,
                             layer=layer, datatype=datatype)
     cross += Rectangle((-0.5, -7.5), (0.5, 7.5),
                              layer=layer, datatype=datatype)
-    crosses = PolygonSet([[(0, 0)]])
+    crosses = PolygonSet()
     crosses += copy.copy(cross).translate(-20, -20)
     crosses += copy.copy(cross).translate(-20, 20)
     crosses += copy.copy(cross).translate(20, 20)

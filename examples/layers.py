@@ -17,7 +17,7 @@ height = 10
 gap_v  = 5
 gap_h  = 10
 
-tot = PolygonSet([[(0, 0)]])
+tot = PolygonSet()
 r1  = Rectangle((0, 0),
                 (width, height))
 

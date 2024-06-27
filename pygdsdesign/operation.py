@@ -498,7 +498,7 @@ def grid_cover(polygons: PolygonSet,
         # That way avoid to create grid in between polygons
         poly = merge(poly)
 
-        resultPoly = PolygonSet([[(0, 0)]])
+        resultPoly = PolygonSet()
 
         for p in poly.polygons:
                         # skip empty polygon
@@ -551,7 +551,7 @@ def grid_cover(polygons: PolygonSet,
             if r is not None:
                 resultPoly += r
     else:
-        resultPoly = PolygonSet([[(0, 0)]])
+        resultPoly = PolygonSet()
 
     return resultPoly.change_layer(layer=layer,
                              datatype=datatype,
