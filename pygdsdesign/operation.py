@@ -453,6 +453,8 @@ def grid_cover(polygons: PolygonSet,
                square_gap: float=12,
                safety_margin: float=10,
                centered: bool=False,
+               noise: float=0,
+               only_square: bool=False,
                layer: int=1,
                datatype: int=0,
                name: str='',
@@ -473,7 +475,17 @@ def grid_cover(polygons: PolygonSet,
         centered: if False, the grid bottom left corresponds to the polygons
             bottom left.
             If True, the grid center corresponds to the polygon center.
-
+            Defaults to False.
+        noise: Add some pseudo-randomness on all the square positions.
+            Each square is translated by a random amount give by the `noise`
+            parameter. A `noise` value of 4 will give a random shift from -4 to
+            +4 in x and y.
+            For instance let's say the original position is (x0, y0), then the
+            shift is given by:
+            >>> 2*noise * np.random.random((int(temp.shape[0]/4), 2)) - noise
+            Defaults to 0, meaning the all step in skipped.
+        only_square: Remove all polygons that are not stricly
+            `square_width` x `square_width` shape.
             Defaults to False.
         layer: gds layer of the grid cover.
             Defaults to 1.
@@ -485,12 +497,12 @@ def grid_cover(polygons: PolygonSet,
             Defaults to ''.
     """
     poly = offset(polygons=polygons,
-                      distance=-safety_margin,
-                      join_first=True,
-                      layer=layer,
-                      datatype=datatype,
-                      name=name,
-                      color=color)
+                  distance=-safety_margin,
+                  join_first=True,
+                  layer=layer,
+                  datatype=datatype,
+                  name=name,
+                  color=color)
 
     if poly is not None:
 
@@ -530,6 +542,12 @@ def grid_cover(polygons: PolygonSet,
                 temp = np.concatenate((temp, temp+np.array([0, temp[:,1].max()-temp[:,1].min()+square_gap])))
                 xi = xi*2
 
+            # If user wants to add some noise to the square positions
+            if noise!=0:
+                t = 2*noise * np.random.random((int(temp.shape[0]/4), 2)) - noise
+                temp += np.repeat(t, 4, axis=0)
+
+            # If use wants to center the whole grid
             if centered:
                 temp += np.array([-(temp[:,0].max()+temp[:,0].min())/2, -(temp[:,1].max()+temp[:,1].min())/2])
                 temp += np.array([(p[:,0].max()+p[:,0].min())/2, (p[:,1].max()+p[:,1].min())/2])
@@ -542,21 +560,30 @@ def grid_cover(polygons: PolygonSet,
                         1000)
 
             # Boolean operation
-            r = PolygonSet(polys,
-                      layers=[layer]*len(polys),
-                      datatypes=[datatype]*len(polys),
-                      names=[name]*len(polys),
-                      colors=[color]*len(polys))
+            r = PolygonSet(polys)
 
+            # if we still have some square left
             if r is not None:
                 resultPoly += r
     else:
         resultPoly = PolygonSet()
 
+    # If user want to only keep entire square
+    if only_square:
+        temp = []
+        for p in resultPoly.polygons:
+            # We keep only quadrilateral
+            if p.shape[0]==4 and p.shape[1]==2:
+                # We keep only square
+                if (    abs(p[1,0]-p[0,0])==square_width
+                    and abs(p[3,1]-p[0,1])==square_width):
+                    temp.append(p)
+        resultPoly = PolygonSet(temp)
+
     return resultPoly.change_layer(layer=layer,
-                             datatype=datatype,
-                             name=name,
-                             color=color)
+                                   datatype=datatype,
+                                   name=name,
+                                   color=color)
 
 
 def inverse_polarity(polygons: PolygonSet,
