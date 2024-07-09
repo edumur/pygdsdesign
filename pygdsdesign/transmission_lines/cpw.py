@@ -8,16 +8,21 @@ from scipy.integrate import quad
 from pygdsdesign.polygons import Rectangle
 from pygdsdesign.polygonSet import PolygonSet
 from pygdsdesign.transmission_lines.transmission_line import TransmissionLine
+from pygdsdesign.typing_local import Coordinate
 
 
 class CPW(TransmissionLine):
 
-    def __init__(self, width: float,
-                       gap: float,
-                       layer: int=0,
-                       datatype: int=0,
-                       name: str='',
-                       color: str='')-> None:
+    def __init__(
+        self,
+        width: float,
+        gap: float,
+        layer: int = 0,
+        datatype: int = 0,
+        name: str = "",
+        color: str = "",
+        ref: Optional[Coordinate] = None,
+    ) -> None:
         """
         Coplanar allows to easily draw a continuous coplanar waveguide.
 
@@ -40,7 +45,8 @@ class CPW(TransmissionLine):
         TransmissionLine.__init__(self, layer=layer,
                                         datatype=datatype,
                                         name=name,
-                                        color=color)
+                                        color=color,
+                                        ref=ref)
 
         self._w = width
         self._s = gap

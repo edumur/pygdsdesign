@@ -1,4 +1,5 @@
 from functools import lru_cache, partial
+import numpy as np
 from typing import Optional, Union, Tuple
 from scipy.special import fresnel
 from typing import Literal, Dict, Callable
@@ -8,7 +9,7 @@ from scipy.special import fresnel
 from scipy.optimize import fsolve
 
 
-from pygdsdesign.polygonSet import PolygonSet, List, np
+from pygdsdesign.polygonSet import PolygonSet
 from pygdsdesign.typing_local import Coordinate
 
 
@@ -16,11 +17,14 @@ from pygdsdesign.typing_local import Coordinate
 class TransmissionLine(PolygonSet):
 
 
-    def __init__(self, layer: int,
-                       datatype: int,
-                       name: str,
-                       color: str,
-                       ref: Optional[Coordinate]=None):
+    def __init__(
+        self,
+        layer: int,
+        datatype: int,
+        name: str,
+        color: str,
+        ref: Optional[Coordinate] = None,
+    ) -> None:
         """
         TransmissionLine class for strip classes allowing easy draw of complex circuits.
 
