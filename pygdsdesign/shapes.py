@@ -718,7 +718,7 @@ def qubit_layer_19(
     - 7G11_1
     - 7G11_2
 
-    Each device is associated with a Text (0.5 micron above the top left via) with the device name in layer_annoation (layer 49 by default)
+    Each device is associated with a Text (5 micron above the top left via) with the device name in layer_annoation (layer 49 by default)
 
     Parameters
     ----------
@@ -727,7 +727,7 @@ def qubit_layer_19(
     layer_annotation: int, optinal
         GDS layer, by default 49
     datatype : int, optional
-        GDS datatype, by default 0
+        GDS datatype, by default 0 for both layer and layer_annotations
 
     Returns
     -------
@@ -848,11 +848,10 @@ def qubit_layer_19(
         ],
     }
 
-    annotations = PolygonSet(layer=layer, datatype=datatype)
+    annotations = PolygonSet(layer=layer_annotation, datatype=datatype)
     vias = PolygonSet(layer=layer, datatype=datatype)
 
     for device in devices.keys():
-        # print(device)
         coordinates = devices[device]
         annotations += Text(
             device,
