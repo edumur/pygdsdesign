@@ -6,7 +6,7 @@ import warnings
 
 from pygdsdesign.library import GdsLibrary
 from pygdsdesign.polygonSet import PolygonSet
-from pygdsdesign.polygons import Rectangle, Text
+from pygdsdesign.polygons import Rectangle, RectangleCentered, Text
 from pygdsdesign.operation import boolean, offset, merge
 
 
@@ -697,6 +697,388 @@ def resistivity_4_probes(layer: int=0,
         return tot.center()
     else:
         return tot
+
+
+def qubit_layer_19(layer: int = 19,
+                   layer_annotation: int = 49,
+                   datatype: int = 0) -> PolygonSet:
+    """
+    Generates part of the layer 19 (via active to Metal 1) of the Qubit mask LETI (post-pro alignment marks).
+    The device vias generates are:
+    - 4G11_1
+    - 4G11_2
+    - 4G11_3
+    - 4G21_1
+    - 4G21_2
+    - 4G22_1
+    - 4G22_2
+    - 4G23_1
+    - 4G23_2
+    - 8G11
+    - 7G11_1
+    - 7G11_2
+
+    Each device are associated with a Text with the device name in layer_annoation (layer 49 by default)
+
+    Parameters
+    ----------
+    layer : int, optional
+        GDS layer, by default 19
+    layer_annotation: int, optinal
+        GDS layer, by default 49
+    datatype : int, optional
+        GDS datatype, by default 0
+
+    Returns
+    -------
+    PolygonSet
+        Set of polygons containing part of the layer 19 of the LETI qubit mask
+        + text annotation to locate devices in layer_annotation (default 49)
+    """
+
+    via_4G11_1 = PolygonSet(layer=layer, datatype=datatype)
+    via_4G11_2 = PolygonSet(layer=layer, datatype=datatype)
+    via_4G11_3 = PolygonSet(layer=layer, datatype=datatype)
+    via_4G21_1 = PolygonSet(layer=layer, datatype=datatype)
+    via_4G21_2 = PolygonSet(layer=layer, datatype=datatype)
+    via_4G22_1 = PolygonSet(layer=layer, datatype=datatype)
+    via_4G22_2 = PolygonSet(layer=layer, datatype=datatype)
+    via_4G23_1 = PolygonSet(layer=layer, datatype=datatype)
+    via_4G23_2 = PolygonSet(layer=layer, datatype=datatype)
+    via_8G11   = PolygonSet(layer=layer, datatype=datatype)
+    via_7G11_1 = PolygonSet(layer=layer, datatype=datatype)
+    via_7G11_2 = PolygonSet(layer=layer, datatype=datatype)
+
+    # list of coordinates of 4G11_1
+    LETI_4G11_1 = [
+        (-1835.305, 4023.675),
+        (-1834.96, 4023.695),
+        (-1834.615, 4023.675),
+        (-1835.305, 4022.745),
+        (-1834.96, 4022.725),
+        (-1834.615, 4022.745),
+    ]
+
+    # list of coordinates of 4G11_2
+    LETI_4G11_2 = [
+        (-1835.295, 3243.605),
+        (-1834.96, 3243.625),
+        (-1834.625, 3243.605),
+        (-1835.295, 3242.745),
+        (-1834.96, 3242.725),
+        (-1834.625, 3242.745),
+    ]
+
+    # list of coordinates of 4G11_3
+    LETI_4G11_3 = [
+        (-1835.285, 2463.535),
+        (-1834.96, 2463.555),
+        (-1834.635, 2463.535),
+        (-1835.285, 2462.745),
+        (-1834.96, 2462.725),
+        (-1834.635, 2462.745),
+    ]
+
+    # list of coordinates of 4G21_1
+    LETI_4G21_1 = [
+        (2194.695, 6903.675),
+        (2195.05, 6903.695),
+        (2195.405, 6903.675),
+        (2194.695, 6902.745),
+        (2195.05, 6902.725),
+        (2195.405, 6902.745),
+    ]
+
+    # list of coordinates of 4G21_2
+    LETI_4G21_2 = [
+        (2194.695, 5863.675),
+        (2195.04, 5863.695),
+        (2195.385, 5863.675),
+        (2194.695, 5862.745),
+        (2195.04, 5862.725),
+        (2195.385, 5862.745),
+    ]
+
+    # list of coordinates of 4G22_1
+    LETI_4G22_1 = [
+        (2324.705, 6903.605),
+        (2325.05, 6903.625),
+        (2325.395, 6903.605),
+        (2324.705, 6902.745),
+        (2325.05, 6902.725),
+        (2325.395, 6902.745),
+    ]
+
+    # list of coordinates of 4G22_2
+    LETI_4G22_2 = [
+        (2324.705, 5863.605),
+        (2325.04, 5863.625),
+        (2325.375, 5863.605),
+        (2324.705, 5862.745),
+        (2325.04, 5862.725),
+        (2325.375, 5862.745),
+    ]
+
+    # list of coordinates of 4G23_1
+    LETI_4G23_1 = [
+        (2454.715, 6903.535),
+        (2455.05, 6903.555),
+        (2455.385, 6903.535),
+        (2454.715, 6902.745),
+        (2455.05, 6902.725),
+        (2455.385, 6902.745),
+    ]
+
+    # list of coordinates of 4G23_2
+    LETI_4G23_2 = [
+        (2454.715, 5863.535),
+        (2455.04, 5863.555),
+        (2455.365, 5863.535),
+        (2454.715, 5862.745),
+        (2455.04, 5862.725),
+        (2455.365, 5862.745),
+    ]
+
+    # list of coordinates of 4G11_1
+    LETI_7G11_1 = [
+        (-1315.625, 3830.905),
+        (-1315.295, 3830.905),
+        (-1314.96, 3830.925),
+        (-1314.625, 3830.905),
+        (-1315.625, 3829.745),
+        (-1315.295, 3829.745),
+        (-1314.96, 3829.725),
+        (-1314.625, 3829.745),
+        (-1314.295, 3829.745),
+    ]
+
+    # list of coordinates of 4G11_1
+    LETI_7G11_2 = [
+        (-1315.615, 2660.775),
+        (-1315.285, 2660.775),
+        (-1314.96, 2660.795),
+        (-1314.635, 2660.775),
+        (-1315.615, 2659.745),
+        (-1315.285, 2659.745),
+        (-1314.96, 2659.725),
+        (-1314.635, 2659.745),
+        (-1314.305, 2659.745),
+    ]
+
+    # list of coordinates of 4G11_1
+    LETI_8G11 = [
+        (-1185.615, 3764.855),
+        (-1185.615, 3764.855),
+        (-1185.285, 3764.855),
+        (-1184.96, 3764.875),
+        (-1184.635, 3764.855),
+        (-1184.305, 3764.855),
+        (-1185.615, 3763.745),
+        (-1185.285, 3763.745),
+        (-1184.96, 3763.725),
+        (-1184.635, 3763.745),
+        (-1184.305, 3763.745),
+    ]
+
+    # generate indication text on layer = layer_annotation
+    leti_qubit_annotation = PolygonSet(layer=layer_annotation, datatype=datatype)
+
+    # 4G11_1
+    # generate indication text
+    leti_qubit_annotation += Text(
+        "4G11_1",
+        20,
+        position=(LETI_4G11_1[0][0], LETI_4G11_1[0][1] + 0.5),
+        layer=layer_annotation,
+    )
+
+    for coord in LETI_4G11_1:
+        # generate the vias
+        via_4G11_1 += RectangleCentered(
+            (coord[0], coord[1]), 0.09, 0.09, layer=layer, datatype=datatype
+        )
+
+    # 4G11_2
+    # generate indication text
+    leti_qubit_annotation += Text(
+        "4G11_2",
+        20,
+        position=(LETI_4G11_2[0][0], LETI_4G11_2[0][1] + 0.5),
+        layer=layer_annotation,
+    )
+
+    for coord in LETI_4G11_2:
+        # generate the vias
+        via_4G11_2 += RectangleCentered(
+            (coord[0], coord[1]), 0.09, 0.09, layer=layer, datatype=datatype
+        )
+
+    # 4G11_3
+    # generate indication text
+    leti_qubit_annotation += Text(
+        "4G11_3",
+        20,
+        position=(LETI_4G11_3[0][0], LETI_4G11_3[0][1] + 0.5),
+        layer=layer_annotation,
+    )
+
+    for coord in LETI_4G11_3:
+        # generate the vias
+        via_4G11_3 += RectangleCentered(
+            (coord[0], coord[1]), 0.09, 0.09, layer=layer, datatype=datatype
+        )
+
+    # 4G21_1
+    # generate indication text
+    leti_qubit_annotation += Text(
+        "4G21_1",
+        20,
+        position=(LETI_4G21_1[0][0], LETI_4G21_1[0][1] + 0.5),
+        layer=layer_annotation,
+    )
+
+    for coord in LETI_4G21_1:
+        # generate the vias
+        via_4G21_1 += RectangleCentered(
+            (coord[0], coord[1]), 0.09, 0.09, layer=layer, datatype=datatype
+        )
+
+    # 4G21_2
+    # generate indication text
+    leti_qubit_annotation += Text(
+        "4G21_2",
+        20,
+        position=(LETI_4G21_2[0][0], LETI_4G21_2[0][1] + 0.5),
+        layer=layer_annotation,
+    )
+
+    for coord in LETI_4G21_2:
+        # generate the vias
+        via_4G21_2 += RectangleCentered(
+            (coord[0], coord[1]), 0.09, 0.09, layer=layer, datatype=datatype
+        )
+
+    # 4G22_1
+    # generate indication text
+    leti_qubit_annotation += Text(
+        "4G22_1",
+        20,
+        position=(LETI_4G22_1[0][0], LETI_4G22_1[0][1] + 0.5),
+        layer=layer_annotation,
+    )
+
+    for coord in LETI_4G22_1:
+        # generate the vias
+        via_4G22_1 += RectangleCentered(
+            (coord[0], coord[1]), 0.09, 0.09, layer=layer, datatype=datatype
+        )
+
+    # 4G22_2
+    # generate indication text
+    leti_qubit_annotation += Text(
+        "4G22_2",
+        20,
+        position=(LETI_4G22_2[0][0], LETI_4G22_2[0][1] + 0.5),
+        layer=layer_annotation,
+    )
+
+    for coord in LETI_4G22_2:
+        # generate the vias
+        via_4G22_2 += RectangleCentered(
+            (coord[0], coord[1]), 0.09, 0.09, layer=layer, datatype=datatype
+        )
+
+    # 4G23_1
+    # generate indication text
+    leti_qubit_annotation += Text(
+        "4G23_1",
+        20,
+        position=(LETI_4G23_1[0][0], LETI_4G23_1[0][1] + 0.5),
+        layer=layer_annotation,
+    )
+
+    for coord in LETI_4G23_1:
+        # generate the vias
+        via_4G23_1 += RectangleCentered(
+            (coord[0], coord[1]), 0.09, 0.09, layer=layer, datatype=datatype
+        )
+
+    # 4G23_2
+    # generate indication text
+    leti_qubit_annotation += Text(
+        "4G23_2",
+        20,
+        position=(LETI_4G23_2[0][0], LETI_4G23_2[0][1] + 0.5),
+        layer=layer_annotation,
+    )
+
+    for coord in LETI_4G23_2:
+        # generate the vias
+        via_4G23_2 += RectangleCentered(
+            (coord[0], coord[1]), 0.09, 0.09, layer=layer, datatype=datatype
+        )
+
+    # 7G11_1
+    # generate indication text
+    leti_qubit_annotation += Text(
+        "7G11_1",
+        20,
+        position=(LETI_7G11_1[0][0], LETI_7G11_1[0][1] + 0.5),
+        layer=layer_annotation,
+    )
+
+    for coord in LETI_7G11_1:
+        # generate the vias
+        via_7G11_1 += RectangleCentered(
+            (coord[0], coord[1]), 0.09, 0.09, layer=layer, datatype=datatype
+        )
+
+    # 7G11_2
+    # generate indication text
+    leti_qubit_annotation += Text(
+        "7G11_2",
+        20,
+        position=(LETI_7G11_2[0][0], LETI_7G11_2[0][1] + 0.5),
+        layer=layer_annotation,
+    )
+
+    for coord in LETI_7G11_2:
+        # generate the vias
+        via_7G11_2 += RectangleCentered(
+            (coord[0], coord[1]), 0.09, 0.09, layer=layer, datatype=datatype
+        )
+
+    # 8G11
+    # generate indication text
+    leti_qubit_annotation += Text(
+        "8G11",
+        20,
+        position=(LETI_8G11[0][0], LETI_8G11[0][1] + 0.5),
+        layer=layer_annotation,
+    )
+
+    for coord in LETI_8G11:
+        # generate the vias
+        via_8G11 += RectangleCentered(
+            (coord[0], coord[1]), 0.09, 0.09, layer=layer, datatype=datatype
+        )
+
+    via = (
+        via_4G11_1
+        + via_4G11_2
+        + via_4G11_3
+        + via_7G11_1
+        + via_7G11_2
+        + via_8G11
+        + leti_qubit_annotation
+        + via_4G21_1
+        + via_4G21_2
+        + via_4G22_1
+        + via_4G22_2
+        + via_4G23_1
+        + via_4G23_2
+    )
+    return via
 
 
 def dicing_saw_mark(substrate: str='si',
