@@ -454,47 +454,44 @@ def grid_cover(polygons: PolygonSet,
                safety_margin: float=10,
                centered: bool=False,
                noise: float=0,
-               only_square: bool=False,
+               only_square: bool=True,
                layer: int=1,
                datatype: int=0,
                name: str='',
                color: str ='') ->  PolygonSet:
     """
-    Create a grid pattern of squares which follows any shape given in polygons
-    after shrinking it by a safety margin.
-    The square size and gap between them are given as free parameters.
+        Create a grid pattern of squares which follows any shape given in polygons
+        after shrinking it by a safety margin.
+        The square size and gap between them are given as free parameters.
 
-    Args:
-        polygons: shape from which the grid pattern is built upon.
-        square_width: Width of the square in um.
-            Defaults to 10um.
-        square_gap: Space between the square in um.
-            Defaults to 12um.
-        safety_margin: shrinking scaling distance taken from the polygon in um.
-            Defaults to 10um.
-        centered: if False, the grid bottom left corresponds to the polygons
-            bottom left.
-            If True, the grid center corresponds to the polygon center.
-            Defaults to False.
-        noise: Add some pseudo-randomness on all the square positions.
-            Each square is translated by a random amount give by the `noise`
-            parameter. A `noise` value of 4 will give a random shift from -4 to
-            +4 in x and y.
-            For instance let's say the original position is (x0, y0), then the
-            shift is given by:
-            >>> 2*noise * np.random.random((int(temp.shape[0]/4), 2)) - noise
-            Defaults to 0, meaning the all step in skipped.
-        only_square: Remove all polygons that are not stricly
-            `square_width` x `square_width` shape.
-            Defaults to False.
-        layer: gds layer of the grid cover.
-            Defaults to 1.
-        datatype: gds datatype of the grid cover.
-            Defaults to 1.
-        name: gds name of the grid cover.
-            Defaults to ''.
-        color: gds color of the grid cover.
-            Defaults to ''.
+        Args:
+            polygons: shape from which the grid pattern is built upon.
+            square_width: Width of the square in um.
+                Defaults to 10um.
+            square_gap: Space between the square in um.
+                Defaults to 12um.
+            safety_margin: shrinking scaling distance taken from the polygon in um.
+                Defaults to 10um.
+            centered: if False, the grid bottom left corresponds to the polygons
+                bottom left.
+                If True, the grid center corresponds to the polygon center.
+                Defaults to False.
+            noise: Noise parameter in um to generate random square positions.
+                Each square is translated by a random amount given by the noise
+                parameter. A noise value uf 4 um will give a random shift
+                from -4 um to +4 um in x and y.
+                Defaults to 0, resulting in a regular grid.
+            only_square: Remove all polygons that are not stricly
+                `square_width` x `square_width` shape.
+                Defaults to True.
+            layer: gds layer of the grid cover.
+                Defaults to 1.
+            datatype: gds datatype of the grid cover.
+                Defaults to 1.
+            name: gds name of the grid cover.
+                Defaults to ''.
+            color: gds color of the grid cover.
+                Defaults to ''.
     """
     poly = offset(polygons=polygons,
                   distance=-safety_margin,
@@ -554,21 +551,20 @@ def grid_cover(polygons: PolygonSet,
             else:
                 temp += np.array([p[:,0].min(), p[:,1].min()])
 
+
+            # Boolean operation
             polys = clipper.clip(np.split(temp, int(len(temp[:,0])/4)),
                         [p],
                         'and',
                         1000)
 
-            # Boolean operation
-            r = PolygonSet(polys)
-
             # if we still have some square left
-            if r is not None:
-                resultPoly += r
+            if len(polys) >0:
+                resultPoly += PolygonSet(polys)
     else:
         resultPoly = PolygonSet()
 
-    # If user want to only keep entire square
+    # If user wants to keep only entire squares
     if only_square:
         temp = []
         for p in resultPoly.polygons:
