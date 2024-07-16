@@ -19,7 +19,8 @@ class PolygonSet():
                        layers: List[int]=None,
                        datatypes: List[int]=None,
                        names: List[str]=None,
-                       colors: List[str]=None) -> None:
+                       colors: List[str]=None,
+                       **kwargs) -> None:
 
         # Getting rid of the mutability of python's default arguments
         if polygons is None:
@@ -39,6 +40,11 @@ class PolygonSet():
         self.names: List[str]  = names
         self.colors: List[str] = colors
         self.properties = {}
+
+        # to keep retrop-compatibility with "layer" old attribute
+        # To allow wasy use of layer dictionnary
+        if 'layer' in kwargs:
+            self.layers = [kwargs['layer']]
 
         # Find the maximum array length
         max_length = max(len(self.polygons), len(self.layers), len(self.datatypes), len(self.names), len(self.colors))
