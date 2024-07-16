@@ -737,3 +737,38 @@ def select_polygon_per_layer(polygons: PolygonSet,
         return merge(tot)
     else:
         return tot
+
+
+def select_polygon_per_name(polygons: PolygonSet,
+                            name: int,
+                            merging: bool=False) -> PolygonSet:
+    """
+    Return a copy of the polygon(s) corresponding to the given name
+    This method does not change the original Polygon or PolygonSet.
+
+    Args:
+        layer : Layer number.
+        datatype: gds datatype of the grid cover.
+            Defaults to 0.
+        merging : If merging is True, merge before returning.
+            Defaults to False.
+    """
+
+    # We create a numpy mask of the single layer we want to keep
+    ns = np.array(polygons.names)
+    mask = ns==name
+
+    # We create an empty Polygon
+    tot = PolygonSet()
+
+    # We fill that polygon with the mask
+    tot.polygons  = list(np.array(polygons.polygons, dtype=object)[mask])
+    tot.layers    = list(np.array(polygons.layers)[mask])
+    tot.datatypes = list(np.array(polygons.datatypes)[mask])
+    tot.colors    = list(np.array(polygons.colors)[mask])
+    tot.names     = list(ns)
+
+    if merging:
+        return merge(tot)
+    else:
+        return tot
