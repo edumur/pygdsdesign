@@ -29,6 +29,10 @@ class MicroStrip_Polar(TransmissionLine):
             Width of the microstrip in um
             This width can be modified latter along the strip or smoothly
             by using tappered functions.
+        angle : float
+            angle of the microstrip in radian
+            This width can be modified latter with the add_turn function.
+            A value of 0 corresponds to the direction left to right.
         layer : int
             Layer number of the microstrip.
         datatype : int
@@ -69,17 +73,14 @@ class MicroStrip_Polar(TransmissionLine):
     #
     ###########################################################################
 
-    def add_line(self, l_len: float,
-                                        ) -> PolygonSet:
+    def add_line(self, l_len: float) -> PolygonSet:
         """
-        Add a piece of linear microstrip in the x or y direction .
+        Add a piece of linear microstrip direction of the angle.
 
         Parameters
         ----------
-        x : float
+        l_len : float
             Length of the strip in the x direction in um.
-        y : float
-            Length of the strip in the y direction in um.
         """
         r = Rectangle((self.ref[0], self.ref[1]-self._w/2),
                               (self.ref[0]+l_len, self.ref[1]+self._w/2),
@@ -90,7 +91,6 @@ class MicroStrip_Polar(TransmissionLine):
         self._add2param(self._rot(self.ref[0],self.ref[1]+self._w/2,-self._angle),
                         self._rot(self.ref[0]+l_len, self.ref[1]+self._w/2,-self._angle),
                         [0, abs(l_len)])         
-
         self._add(r)
         self.ref = [self.ref[0] + self._rot(l_len, 0,-1*self._angle)[
             0], self.ref[1] + self._rot(l_len, 0,-1*self._angle)[1]]
@@ -109,6 +109,19 @@ class MicroStrip_Polar(TransmissionLine):
     def add_turn(self, radius: float,
                        delta_angle: float,
                        nb_points: int=50) -> PolygonSet:
+        """
+        Add a circulare turn to the strip.
+
+        Parameters
+        ----------
+        radius : float
+            Radius of the arc in um.
+        delta_angle : float
+            angle of the turn. a positive value will produces a left turn. a negative value will produces a right turn.
+            the angle is relative to the previous angle.Hence, a value of pi/2 will produces a 90° left turn, relatives to the direction of the last strip.
+        nb_points : int (default=50)
+            Number of point used in the polygon.
+        """
 
         if delta_angle >= 0:
             start= self._angle - np.pi/2
@@ -156,9 +169,18 @@ class MicroStrip_Polar(TransmissionLine):
     #
     ###########################################################################
 
-    def add_taper(self, l_len: float,
-                        
-                        new_width: float) -> PolygonSet:
+    def add_taper(self, l_len: float, new_width: float) -> PolygonSet:
+
+        """
+        Add linear taper between the current and the new width.
+
+        Parameters
+        ----------
+        l_len : float
+            Length of the taper
+        new_width : float
+            New width of the microstrip in um.
+        """
 
         p = [(self.ref[0], self.ref[1]-self._w/2),
              (self.ref[0]+l_len, self.ref[1] - new_width/2.),
@@ -199,7 +221,32 @@ class MicroStrip_Polar(TransmissionLine):
                                 args: Optional[Tuple[Optional[float], ...]]=None,
                                 add_polygon: bool=True,
                                 add_length: bool=True) -> PolygonSet:
-        
+        """
+        Create a microstrip line following the parametric equation f and its
+        derivative df along the length t.
+        In order to return the curve length correctly, the derivative df of f
+        must be correct, its absolute amplitude must be correct.
+        The curve is automtically aligned and rotated according to the previous strip angle.
+        The next strip's angle will also be changed according to the curve.
+
+        Parameters
+        ---------
+        f : func
+            Function calculating the parametric equation.
+            Must be of the type f(t, args) and return a tuple of coordinate
+            (x, y).
+        df : func
+            Function calculating the derivative of the parametric equation.
+            Must be of the type df(t, args) and return a tuple of coordinate
+            (dx, dy).
+        t : np.ndarray
+            Array of the length of the parametric curve.
+            Also determine the number of point of the total polygon.
+            Must not necessarily starts at 0.
+        args : variable arguments (default None)
+            Argument passed to f and df
+        """ 
+
         if args is None:
             args = (None, )
 
@@ -231,7 +278,6 @@ class MicroStrip_Polar(TransmissionLine):
                          names=[self._name],
                           colors=[self._color]).translate(self.ref[0]-x[0]+self._rot(self._w/2,0,-theta1[0])[0], self.ref[1]-y[0]+self._rot(self._w/2,0,-theta1[0])[1]).rotate(self._angle - theta1[0] - np.pi/2, [self.ref[0], self.ref[1]])
         self._angle += theta1[-1] - theta1[0]
-        self.ref[0]+= 10
         # Calculate curve length
         def func(t, args):
             dx1, dy1 = df(t, args)
