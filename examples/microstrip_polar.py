@@ -1,8 +1,8 @@
 import numpy as np
 from copy import copy,deepcopy
 
-from pygdsdesign import GdsLibrary, PolygonSet, Rectangle, Round, substraction, offset,Text, CPW, MicroStrip, addition, MicroStrip_Polar
-
+#from pygdsdesign import GdsLibrary, PolygonSet, Rectangle, Round, substraction, offset,Text, CPW, MicroStrip, addition, MicroStrip_Polar
+from pygdsdesign import (GdsLibrary, PolygonSet, Text, MicroStripPolar)
 
 def spiral(u, args):
 
@@ -62,7 +62,7 @@ tot += t.translate(-dx_t+chip_dx, -dy_t-250)
 # Center the design to the chip and the chip to the (0,0) of the cell
 
 
-m=MicroStrip_Polar(2,np.pi/2.65)
+m=MicroStripPolar(2,np.pi/2.65)
 
 m.add_taper(5, 3)
 m.add_line(6)

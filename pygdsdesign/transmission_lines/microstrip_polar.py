@@ -1,18 +1,15 @@
-from functools import partial
 import numpy as np
-from copy import deepcopy
-from typing import Callable, Tuple, Optional, Dict, Union
-from typing_extensions import Literal
+import copy
+from typing import Callable, Tuple, Optional, Union
 from scipy.integrate import quad
-from scipy.interpolate import interp1d
-from tqdm import tqdm
 
-from pygdsdesign.transmission_lines.transmission_line import TransmissionLine
 from pygdsdesign.polygons import Rectangle
 from pygdsdesign.polygonSet import PolygonSet
+from pygdsdesign.transmission_lines.transmission_line import TransmissionLine
+from pygdsdesign.typing_local import Coordinate
 
 
-class MicroStrip_Polar(TransmissionLine):
+class MicroStripPolar(TransmissionLine):
 
     def __init__(self, width: float,
                        angle: float,
@@ -29,14 +26,18 @@ class MicroStrip_Polar(TransmissionLine):
             Width of the microstrip in um
             This width can be modified latter along the strip or smoothly
             by using tappered functions.
-        angle : float
-            angle of the microstrip in radian
-            This width can be modified latter with the add_turn function.
+        angle: float
+            Orientation of the microstrip in radian.
+            This angle can be modified latter with the add_turn function.
             A value of 0 corresponds to the direction left to right.
         layer : int
-            Layer number of the microstrip.
+            Layer number of the coplanar. Default to 0
         datatype : int
-            Datatype number of the microstrip.
+            Datatype number of the coplanar. Default to 0
+        name: str
+            Name of the complanar
+        color: str
+            Color of the complanar
         """
 
         TransmissionLine.__init__(self, layer=layer,
@@ -68,7 +69,7 @@ class MicroStrip_Polar(TransmissionLine):
 
 
     ###########################################################################
-    #                                                                                                                                                                                                                                
+    #
     #                   Add polygons to the existing microstrip
     #
     ###########################################################################
@@ -90,7 +91,7 @@ class MicroStrip_Polar(TransmissionLine):
                               color=self._color).rotate(self._angle,[self.ref[0],self.ref[1]])
         self._add2param(self._rot(self.ref[0],self.ref[1]+self._w/2,-self._angle),
                         self._rot(self.ref[0]+l_len, self.ref[1]+self._w/2,-self._angle),
-                        [0, abs(l_len)])         
+                        [0, abs(l_len)])
         self._add(r)
         self.ref = [self.ref[0] + self._rot(l_len, 0,-1*self._angle)[
             0], self.ref[1] + self._rot(l_len, 0,-1*self._angle)[1]]
@@ -117,33 +118,35 @@ class MicroStrip_Polar(TransmissionLine):
         radius : float
             Radius of the arc in um.
         delta_angle : float
-            angle of the turn. a positive value will produces a left turn. a negative value will produces a right turn.
-            the angle is relative to the previous angle.Hence, a value of pi/2 will produces a 90° left turn, relatives to the direction of the last strip.
+            Angle of the turn. a positive value will produces a left turn. A
+            A negative value will produces a right turn.
+            The angle is relative to the previous angle.
+            Hence, a value of pi/2 will produces a 90° left turn,
+            relatives to the direction of the last strip.
         nb_points : int (default=50)
             Number of point used in the polygon.
         """
 
         if delta_angle >= 0:
             start= self._angle - np.pi/2
-            stop= start + delta_angle 
+            stop= start + delta_angle
             theta=np.linspace(start,stop, nb_points)
-            x0 = self.ref[0] + -radius*np.cos(start) 
-            y0 = self.ref[1] + -radius*np.sin(start) 
+            x0 = self.ref[0] + -radius*np.cos(start)
+            y0 = self.ref[1] + -radius*np.sin(start)
             x = np.concatenate(((radius-self._w/2.)*np.cos(theta), (radius + self._w/2.)*np.cos(theta[::-1])))
             y = np.concatenate(((radius-self._w/2.)*np.sin(theta), (radius + self._w/2.)*np.sin(theta[::-1])))
-            self.ref = [x0+(x[nb_points]+x[nb_points-1])/2, y0+(y[nb_points]+y[nb_points-1])/2] 
-            
+            self.ref = [x0+(x[nb_points]+x[nb_points-1])/2, y0+(y[nb_points]+y[nb_points-1])/2]
+
         else:
             start= self._angle + np.pi/2
-            stop= start + delta_angle 
+            stop= start + delta_angle
             theta=np.linspace(start,stop, nb_points)
-            x0 = self.ref[0] + -radius*np.cos(start) 
-            y0 = self.ref[1] + -radius*np.sin(start) 
+            x0 = self.ref[0] + -radius*np.cos(start)
+            y0 = self.ref[1] + -radius*np.sin(start)
             x = np.concatenate(((radius-self._w/2.)*np.cos(theta), (radius + self._w/2.)*np.cos(theta[::-1])))
             y = np.concatenate(((radius-self._w/2.)*np.sin(theta), (radius + self._w/2.)*np.sin(theta[::-1])))
-            self.ref = [x0+(x[nb_points]+x[nb_points-1])/2, y0+(y[nb_points]+y[nb_points-1])/2]  
-        
-        
+            self.ref = [x0+(x[nb_points]+x[nb_points-1])/2, y0+(y[nb_points]+y[nb_points-1])/2]
+
         self._angle += delta_angle
 
         p = np.vstack((x0+x, y0+y)).T
@@ -154,7 +157,7 @@ class MicroStrip_Polar(TransmissionLine):
                              names=[self._name],
                              colors=[self._color]))
 
-        self.total_length += radius*np.pi/2.
+        self.total_length += radius*delta_angle
 
         self._add2param(x0+radius*np.cos(theta),
                         y0+radius*np.sin(theta),
@@ -177,7 +180,7 @@ class MicroStrip_Polar(TransmissionLine):
         Parameters
         ----------
         l_len : float
-            Length of the taper
+            Length of the taper in um.
         new_width : float
             New width of the microstrip in um.
         """
@@ -199,13 +202,10 @@ class MicroStrip_Polar(TransmissionLine):
         #self.ref = [self.ref[0]+l_len, self.ref[1]]
         self.ref = [self.ref[0] + self._rot(l_len , 0,-self._angle)[0], self.ref[1] + self._rot(l_len , 0, -self._angle)[1]]
         self.total_length += abs(l_len)
-        
+
         self._w = new_width
 
         return self
-    
-    
-
 
     ###########################################################################
     #
@@ -245,7 +245,7 @@ class MicroStrip_Polar(TransmissionLine):
             Must not necessarily starts at 0.
         args : variable arguments (default None)
             Argument passed to f and df
-        """ 
+        """
 
         if args is None:
             args = (None, )
@@ -258,7 +258,7 @@ class MicroStrip_Polar(TransmissionLine):
 
         x1_, y1_ = f(t, args)
         theta1 = np.angle(dx1+1j*dy1)-np.pi/2.
-        
+
         x1, y1 = x1_+np.cos(theta1)*self._w/2., y1_+np.sin(theta1)*self._w/2.
 
 
@@ -271,7 +271,7 @@ class MicroStrip_Polar(TransmissionLine):
 
         x, y = np.concatenate((x1, x2)), np.concatenate((y1, y2))
         p = np.vstack((x, y)).T
-        
+
         poly = PolygonSet(polygons=[p],
                          layers=[self._layer],
                          datatypes=[self._datatype],
@@ -298,4 +298,3 @@ class MicroStrip_Polar(TransmissionLine):
             return self
         else:
             return poly
-    

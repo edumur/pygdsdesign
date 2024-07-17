@@ -1,8 +1,7 @@
 import numpy as np
 from copy import copy,deepcopy
 
-from pygdsdesign import GdsLibrary, PolygonSet, Rectangle, Round, substraction, offset,Text, CPW, MicroStrip, addition, MicroStrip_Polar, CPW_Polar
-
+from pygdsdesign import (GdsLibrary, PolygonSet, Text, CPWPolar)
 
 def spiral(u, args):
 
@@ -34,7 +33,7 @@ def dcircle_dt(t, args):
     return dx_dt, dy_dt
 
 
-# Chip size 
+# Chip size
 chip_dx = 595*2
 chip_dy = 767*2
 
@@ -59,7 +58,7 @@ tot += t.translate(-dx_t+chip_dx, -dy_t-250)
 # Center the design to the chip and the chip to the (0,0) of the cell
 
 largeur_micro=1
-m = CPW_Polar(width=largeur_micro, gap=largeur_micro/5, angle=-np.pi/2.24654)
+m = CPWPolar(width=largeur_micro, gap=largeur_micro/5, angle=-np.pi/2.24654)
 
 m.add_line(3)
 
@@ -96,15 +95,16 @@ m.add_parametric_curve(circle, dcircle_dt,np.linspace(-np.pi/2.24, np.pi/0.55412
 m.add_line(3)
 m.add_parametric_curve(circle, dcircle_dt,np.linspace(-np.pi/3.65, np.pi/2.55412 , 100), args=[1.4854],add_polygon=True)
 m.add_taper(3, largeur_micro/2, largeur_micro/10)
+m.add_end(0.02, True)
 m.add_line(3)
-m.add_turn(3, +np.pi/1.2124)
-m.add_circular_end(nb_points=101)
-m.add_end(0.02)
+m.add_turn(3, +np.pi/2.2124)
+m.add_circular_end(nb_points=101, update_ref=True)
+m.add_line(3)
 
-
-test = CPW_Polar(width=largeur_micro, gap=largeur_micro/5, angle=-np.pi/2.24654,layer=42)
-test+=m.bounding_polygon.change_layer(42)
-cell.add(test)
+#adding bounding polygon
+b_p = CPWPolar(width=largeur_micro, gap=largeur_micro/5, angle=-np.pi/2.24654,layer=42)
+b_p+=m.bounding_polygon.change_layer(42)
+cell.add(b_p)
 tot+=m
 
 tot+=m

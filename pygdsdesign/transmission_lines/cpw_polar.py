@@ -1,8 +1,6 @@
-from functools import partial
 import numpy as np
 import copy
-from typing import Callable, Tuple, Optional, Dict, Union
-from typing_extensions import Literal
+from typing import Callable, Tuple, Optional, Union
 from scipy.integrate import quad
 
 from pygdsdesign.polygons import Rectangle
@@ -11,7 +9,7 @@ from pygdsdesign.transmission_lines.transmission_line import TransmissionLine
 from pygdsdesign.typing_local import Coordinate
 
 
-class CPW_Polar(TransmissionLine):
+class CPWPolar(TransmissionLine):
 
     def __init__(
         self,
@@ -38,13 +36,17 @@ class CPW_Polar(TransmissionLine):
             This width can be modified latter along the strip or smoothly
             by using tappered functions.
         angle: float
-            angle of the microstrip in radian
-            This width can be modified latter with the add_turn function.
+            Orientation of the microstrip in radian.
+            This angle can be modified latter with the add_turn function.
             A value of 0 corresponds to the direction left to right.
         layer : int
-            Layer number of the coplanar.
+            Layer number of the coplanar. Default to 0
         datatype : int
-            Datatype number of the coplanar.
+            Datatype number of the coplanar. Default to 0
+        name: str
+            Name of the complanar
+        color: str
+            Color of the complanar
         """
 
         TransmissionLine.__init__(self, layer=layer,
@@ -83,22 +85,6 @@ class CPW_Polar(TransmissionLine):
     def bounding_polygon(self):
         return self._bounding_polygon
 
-
-    # def translate(self, dx: float,
-    #                     dy: float) -> PolygonSet:
-    #     """
-    #     Translate the cpw by the amount dx, dy in the x and y direction.
-    #     Take care of translating also the bounding_polygon.
-
-    #     Args:
-    #         dx (float): amount of translation in the x direction in um.
-    #         dy (float): amount of translation in the y direction in um.
-    #     """
-
-    #     self._bounding_polygon.translate(dx,dy)
-    #     return super().translate(dx, dy)
-
-
     ###########################################################################
     #
     #                   Add polygons to the existing coplanar waveguide
@@ -114,7 +100,7 @@ class CPW_Polar(TransmissionLine):
         Parameters
         ----------
         l_len : float
-            Length of the strip.
+            Length of the strip in um.
         """
         p  = PolygonSet([[(0, -self._w/2.),
                           (0, -self._w/2. - self._s),
@@ -134,13 +120,11 @@ class CPW_Polar(TransmissionLine):
                         names=[self._name],
                         colors=[self._color])
 
-                        
         a, b = p.get_bounding_box()
         self._add(p.rotate(self._angle).translate(*self.ref))
-        
 
         # update bounding polygon
-       
+
         bp = Rectangle((a[0], a[1]),
                        (b[0], b[1])).rotate(self._angle).translate(*self.ref)
 
@@ -171,22 +155,25 @@ class CPW_Polar(TransmissionLine):
         radius : float
             Radius of the arc in um.
         delta_angle : float
-            angle of the turn. a positive value will produces a left turn. a negative value will produces a right turn.
-            the angle is relative to the previous angle.Hence, a value of pi/2 will produces a 90° left turn, relatives to the direction of the last strip.
+            Angle of the turn. a positive value will produces a left turn. A
+            A negative value will produces a right turn.
+            The angle is relative to the previous angle.
+            Hence, a value of pi/2 will produces a 90° left turn,
+            relatives to the direction of the last strip.
         nb_point : int (default=50)
             Number of point used in the polygon.
         """
 
         if delta_angle >= 0:
             start= self._angle - np.pi/2
-        else:    
+        else:
             start= self._angle + np.pi/2
-        stop= start + delta_angle 
+        stop= start + delta_angle
         theta=np.linspace(start,stop, nb_points)
-        
-        x0 = self.ref[0] + -radius*np.cos(start) 
+
+        x0 = self.ref[0] + -radius*np.cos(start)
         y0 = self.ref[1] + -radius*np.sin(start)
-        
+
         x = np.concatenate(((radius+self._w/2.)*np.cos(theta), (radius+self._w/2.+self._s)*np.cos(theta[::-1])))
         y = np.concatenate(((radius+self._w/2.)*np.sin(theta), (radius+self._w/2.+self._s)*np.sin(theta[::-1])))
 
@@ -216,7 +203,7 @@ class CPW_Polar(TransmissionLine):
                     y0+(y[nb_points]+y[nb_points-1])/2]
         self._add(p)
         self._bounding_polygon+=bp
-        self.total_length += radius*np.pi/2.
+        self.total_length += radius*delta_angle
 
         return self
 
@@ -238,7 +225,7 @@ class CPW_Polar(TransmissionLine):
         Parameters
         ----------
         l_len : float
-            Length of the taper.
+            Length of the taper in um.
         new_width : float
             New width of the microstrip in um.
         new_gap : float
@@ -266,7 +253,6 @@ class CPW_Polar(TransmissionLine):
 
         p.translate(*self.ref)
         bp.translate(*self.ref).rotate(self._angle,[self.ref[0],self.ref[1]])
-    
 
         self.ref = [self.ref[0]+l_len*np.cos(self._angle), self.ref[1]+l_len*np.sin(self._angle)]
 
@@ -338,7 +324,6 @@ class CPW_Polar(TransmissionLine):
 
         x, y = np.concatenate((x1, x2)), np.concatenate((y1, y2))
         p1 = np.vstack((x, y)).T
-        x_b,y_b=x,y
         # keep the coordinates of the outer trace
         bp_x, bp_y = x1, y1
 
@@ -405,14 +390,15 @@ class CPW_Polar(TransmissionLine):
     #
     ###########################################################################
 
-    def add_end(self, width: float) -> PolygonSet:
+    def add_end(self, width: float,
+                      update_ref: bool=False) -> PolygonSet:
         """
         Add an end to a coplanar waveguide in the perpendicular direction
 
         Parameters
         ----------
         width : float
-            width of the end 
+            width of the end in um
         """
 
         r = Rectangle((-self._w/2.-self._s, width),
@@ -424,6 +410,10 @@ class CPW_Polar(TransmissionLine):
         a,b = r.get_bounding_box()
         self._add(r.translate(*self.ref).rotate(self._angle-np.pi/2,[self.ref[0],self.ref[1]]))
 
+
+        if update_ref:
+            self.ref = [self.ref[0]+width*np.cos(self._angle), self.ref[1]+width*np.sin(self._angle)]
+
         # update bounding polygon
         bp = Rectangle((a[0], a[1]),
                         (b[0], b[1])).translate(*self.ref).rotate(self._angle-np.pi/2,[self.ref[0],self.ref[1]])
@@ -432,7 +422,8 @@ class CPW_Polar(TransmissionLine):
         return self
 
 
-    def add_circular_end(self, nb_points: int=50) -> PolygonSet:
+    def add_circular_end(self, nb_points: int=50,
+                               update_ref: bool=False) -> PolygonSet:
         """
         Add a circular open end to a coplanar waveguide in the given
         orientation.
@@ -459,8 +450,10 @@ class CPW_Polar(TransmissionLine):
 
         p.rotate(self._angle)
         bp.rotate(self._angle)
-        added_ref = (0., -self._w/2 - self._s)
         self._add(p.translate(*self.ref))
         self._bounding_polygon+=bp.translate(*self.ref)
 
+        if update_ref:
+            added_ref = self._rot(self._w/2 + self._s, 0,self._angle)
+            self.ref = [self.ref[0]+added_ref[0], self.ref[1]-added_ref[1]]
         return self
