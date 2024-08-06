@@ -825,7 +825,7 @@ def spiral(
 
     # Parametric curve
     t = np.linspace(0, 1, nb_points)
-    r = nb_turn * 2 * spacing * t + inner_diameter / 2
+    r = nb_turn * (spacing+width) * t + inner_diameter / 2
     theta = nb_turn * 2 * np.pi * t
     x = r * np.cos(theta)
     y = r * np.sin(theta)
