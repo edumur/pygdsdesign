@@ -760,3 +760,90 @@ def dicing_saw_mark(substrate: str='si',
     t > ( 0,  w/2)
 
     return t
+
+
+def spiral(
+    inner_diameter: float,
+    width: float,
+    spacing: float,
+    nb_turn: int,
+    nb_points: int=500,
+    layer: int=0,
+    name: str="",
+    color: str="",
+    datatype: int=0,
+) -> PolygonSet:
+    """
+        Make a archimedean spiral as below
+
+                              ******************
+                          ****                ******
+                        ****                      ****
+                      **                            ****
+                    ****                              ****
+                  ****                                  **
+                  **              **********            ****
+                ****          ****        ****            **
+                **            **            ****          **
+                **          ****              **          **
+                **          **              ****          **
+                **          **          ******            **
+                **          **                          ****          **
+                **          ****                        **            **
+                **            **                      ****          **
+                  **          ****                  ****            **
+                  **            ******            ****            ****
+                  ****              **************                **
+                    **                                          **
+                      **                                      ****
+                      ****                                  ****
+                          ****                          ******
+                            ******                  ******
+                                ********      ********
+                                      **********
+
+        Args:
+            inner_diameter: Inner diameter from which the spiral will start
+            width: width of the spiral arm
+            spacing: spacing between the spiral arm
+            nb_turn: nb turn of the spiral
+            nb_points: nb_points of the polygon making the spiral.
+                Defaults to 500.
+            layer: Number of the metal layer.
+                Defaults to 0.
+            name: Name of the metal layer.
+                Defaults to ''.
+            color: Color of the metal layer.
+                Defaults to ''.
+            datatype: Datatype of the metal layer.
+                Defaults to 0.
+
+        Returns:
+            PolygonSet: A PolygonSet of the spiral.
+    """
+
+
+    # Parametric curve
+    t = np.linspace(0, 1, nb_points)
+    r = nb_turn * (spacing+width) * t + inner_diameter / 2
+    theta = nb_turn * 2 * np.pi * t
+    x = r * np.cos(theta)
+    y = r * np.sin(theta)
+
+    # outer curve
+    x1 = x + np.cos(theta) * width / 2
+    y1 = y + np.sin(theta) * width / 2
+
+    # inner curve
+    x2 = x - np.cos(theta) * width / 2
+    y2 = y - np.sin(theta) * width / 2
+
+    # combine both
+    x = np.concatenate((x1, x2[::-1]))
+    y = np.concatenate((y1, y2[::-1]))
+
+    return PolygonSet(polygons=[np.vstack((x, y)).T],
+                      layers=[layer],
+                      names=[name],
+                      colors=[color],
+                      datatypes=[datatype])
