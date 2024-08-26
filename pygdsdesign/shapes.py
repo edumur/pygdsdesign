@@ -10,7 +10,6 @@ from pygdsdesign.polygons import Rectangle, Text
 from pygdsdesign.operation import boolean, offset, merge, addition, substraction, inverse_polarity
 
 
-
 def crosses(coordinates: list,
             layer: int = 1,
             datatype: int = 0,
@@ -156,7 +155,7 @@ def global_marks_ebeam(w: float=10,
     """
 
     # Make the crosse
-    cross = PolygonSet([[(0, 0)]])
+    cross = PolygonSet()
     cross += Rectangle((0, 0), (w, l), layer=layer, datatype=datatype, color=color, name=name).center()
     cross += Rectangle((0, 0), (l, w), layer=layer, datatype=datatype, color=color, name=name).center()
 
@@ -177,11 +176,11 @@ def global_marks_ebeam(w: float=10,
 
 
     if directional_structures:
-        temp = PolygonSet([[(0, 0)]])
+        temp = PolygonSet()
 
         # Create a default triangle with the proper orientation
         t = PolygonSet([[(0, 0), (directional_structures_length, 0), (directional_structures_length/2, 2*directional_structures_length)]])
-        t.rotate(np.pi/2, t.center())
+        t.rotate(np.pi/2, t.get_center())
 
         # Add many triangles with the proper rotation in 10 concentrics circles
         for r, s in zip(np.linspace(directional_offset, l*0.75, 10),
@@ -205,14 +204,14 @@ def global_marks_ebeam(w: float=10,
 
         # In case the boolean operation return nothing (too small cross for instance)
         if temp3 is None:
-            return PolygonSet([[(0, 0)]])
+            return PolygonSet()
 
         # We remove the triangles which have been cut from previous boolean
         # operation and are now too small
-        temp4 = PolygonSet([[(0, 0)]])
+        temp4 = PolygonSet()
         for p in temp3.polygons:
             t=PolygonSet([p], layers=[layer], datatypes=[datatype], colors=[color], names=[name])
-            if t.area()>0.9*directional_structures_length*directional_structures_length:
+            if t.get_area()>0.9*directional_structures_length*directional_structures_length:
                 temp4 += t
         tot += temp4
 
@@ -235,7 +234,7 @@ def chip_marks_ebeam(layer: int=1,
                             layer=layer, datatype=datatype)
     cross += Rectangle((-0.5, -7.5), (0.5, 7.5),
                              layer=layer, datatype=datatype)
-    crosses = PolygonSet([[(0, 0)]])
+    crosses = PolygonSet()
     crosses += copy.copy(cross).translate(-20, -20)
     crosses += copy.copy(cross).translate(-20, 20)
     crosses += copy.copy(cross).translate(20, 20)
@@ -761,6 +760,94 @@ def dicing_saw_mark(substrate: str='si',
     t > ( 0,  w/2)
 
     return t
+
+
+def spiral(
+    inner_diameter: float,
+    width: float,
+    spacing: float,
+    nb_turn: int,
+    nb_points: int=500,
+    layer: int=0,
+    name: str="",
+    color: str="",
+    datatype: int=0,
+) -> PolygonSet:
+    """
+        Make a archimedean spiral as below
+
+                              ******************
+                          ****                ******
+                        ****                      ****
+                      **                            ****
+                    ****                              ****
+                  ****                                  **
+                  **              **********            ****
+                ****          ****        ****            **
+                **            **            ****          **
+                **          ****              **          **
+                **          **              ****          **
+                **          **          ******            **
+                **          **                          ****          **
+                **          ****                        **            **
+                **            **                      ****          **
+                  **          ****                  ****            **
+                  **            ******            ****            ****
+                  ****              **************                **
+                    **                                          **
+                      **                                      ****
+                      ****                                  ****
+                          ****                          ******
+                            ******                  ******
+                                ********      ********
+                                      **********
+
+        Args:
+            inner_diameter: Inner diameter from which the spiral will start
+            width: width of the spiral arm
+            spacing: spacing between the spiral arm
+            nb_turn: nb turn of the spiral
+            nb_points: nb_points of the polygon making the spiral.
+                Defaults to 500.
+            layer: Number of the metal layer.
+                Defaults to 0.
+            name: Name of the metal layer.
+                Defaults to ''.
+            color: Color of the metal layer.
+                Defaults to ''.
+            datatype: Datatype of the metal layer.
+                Defaults to 0.
+
+        Returns:
+            PolygonSet: A PolygonSet of the spiral.
+    """
+
+
+    # Parametric curve
+    t = np.linspace(0, 1, nb_points)
+    r = nb_turn * (spacing+width) * t + inner_diameter / 2
+    theta = nb_turn * 2 * np.pi * t
+    x = r * np.cos(theta)
+    y = r * np.sin(theta)
+
+    # outer curve
+    x1 = x + np.cos(theta) * width / 2
+    y1 = y + np.sin(theta) * width / 2
+
+    # inner curve
+    x2 = x - np.cos(theta) * width / 2
+    y2 = y - np.sin(theta) * width / 2
+
+    # combine both
+    x = np.concatenate((x1, x2[::-1]))
+    y = np.concatenate((y1, y2[::-1]))
+
+    return PolygonSet(polygons=[np.vstack((x, y)).T],
+                      layers=[layer],
+                      names=[name],
+                      colors=[color],
+                      datatypes=[datatype])
+
 
 
 def capacitance(c_arm_length:list=[18,24,36,24,18],
