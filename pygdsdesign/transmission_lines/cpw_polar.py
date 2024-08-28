@@ -486,7 +486,7 @@ class CPWPolar(TransmissionLine):
                        length:list=[14,32],
                        )-> PolygonSet:
         """
-        Return a 5th-order butterworth filter and its bounding polygons.
+        Return a 5th-order, cauer topology, butterworth filter and its bounding polygons.
         see \pygdsdesign\examples\butterworth_filter_parameters.png for a graphical reprensations of the parameters.
 
         Args:

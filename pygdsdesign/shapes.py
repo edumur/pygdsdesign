@@ -865,8 +865,8 @@ def capacitance(c_arm_length:list=[18,24,36,24,18],
     """
     Return a capacitance to ground.
     This "antenna-like" capacitance consists in a central conductor and "arms" perpendicular to it.
-    The goal is have a shape with a low number of square (to reduce inductance)
-    but with a great outline length to yield a great capacitance
+    The goal is to have a shape with a low number of square (to reduce inductance)
+    but with a great outline length to yield a great capacitance to ground
     Used for the butterworth filters.
 
     Args:
@@ -1029,9 +1029,9 @@ def butterworth_filter(central_conductor_width:float=4,
                        color: str=''
                        )-> PolygonSet:
     """
-    Return a 5th-order butterworth filter and its bounding polygons.
+    Return a 5th-order, cauer topology, butterworth filter and its bounding polygons.
     see \pygdsdesign\examples\butterworth_filter_parameters.png for a graphical reprensations of the parameters.
-    
+
     Args:
         central_conductor_width: width of the central CPW.
             Defaults to 4 um
