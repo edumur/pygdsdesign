@@ -865,8 +865,8 @@ def capacitance(c_arm_length:list=[18,24,36,24,18],
     """
     Return a capacitance to ground.
     This "antenna-like" capacitance consists in a central conductor and "arms" perpendicular to it.
-    The goal is to have a shape with a low number of square (to reduce inductance)
-    but with a great outline length to yield a great capacitance to ground
+    The goal is to have a shape with a low number of squares (to reduce the inductance)
+    but with a large circumference to yield a large capacitance to ground.
     Used for the butterworth filters.
 
     Args:
