@@ -855,18 +855,22 @@ def capacitance(c_arm_length:list=[18,24,36,24,18],
                 arm_width:float=2,
                 gap:float=0.2,
                 length:float=32,
-                entrance1:bool=False,
-                entrance2:bool=False,
+                port1:bool=False,
+                port2:bool=False,
                 layer:int=0,
                 datatype:int=0,
                 name: str='',
                 color: str=''
                 )-> PolygonSet:
     """
-    Return a capacitance to ground. Used for the butterworth filters.
+    Return a capacitance to ground.
+    This "antenna-like" capacitance consists in a central conductor and "arms" perpendicular to it.
+    The goal is have a shape with a low number of square (to reduce inductance)
+    but with a great outline length to yield a great capacitance
+    Used for the butterworth filters.
 
     Args:
-        c_arm_length: length of the arm of the capacitance.
+        c_arm_length: length of the arms of the capacitance. connected to the central conductor.
             Defaults to [18,24,36,24,18] [um].
         c_central_width: width of the central conductor, connecting the arms.
             Defaults to 2 um.
@@ -876,15 +880,13 @@ def capacitance(c_arm_length:list=[18,24,36,24,18],
             Defaults to 0.2 um.
         length: length of the central conductor, connecting the arms.
             Defaults to 32um.
-        entrance1/2: Closing or opening the start and the end of the central conductor, usefull to connect the capacitance to an other CPW.
+        port1/2: Closing or opening the left/right termination of the central conductor, usefull to connect the capacitance to an other CPW.
             Defaults to False (close).
         layer,datatype,name,color: Used for naming the metal layer
             Defaults to 0,0,'',''.
     Returns:
         PolygonSet: Set of polygons containing the capacitance
     """
-    from pygdsdesign.transmission_lines.cpw_polar import CPWPolar
-    from pygdsdesign.transmission_lines.microstrip_polar import MicroStripPolar
 
     _layer: Dict[str, Any] = {'layer'    : layer,
                               'datatype' : datatype,
@@ -897,21 +899,22 @@ def capacitance(c_arm_length:list=[18,24,36,24,18],
     antenne+=m
     for i in range(n):
         m=Rectangle([0,0],[arm_width,-c_arm_length[i]])
-        #x=  + ((i+1)/n*length)-arm_width
         x=  + length/(n-1)*i
         m.translate(x,c_arm_length[i]/2 -c_central_width/2)
         antenne+=m
     r=offset(antenne,gap)
 
-    if entrance1==True:
+    if port1==True:
         rec=Rectangle([-gap,0],[0,-c_central_width])
         antenne = addition(antenne,rec)
-    if entrance2==True:
+    if port2==True:
         rec=Rectangle([length,0],[length+gap,-c_central_width])
         antenne = addition(antenne,rec)
     antenne= substraction(r,antenne).translate(+gap,c_central_width/2)
+    bp=r.translate(+gap,c_central_width/2)
 
-    return antenne.change_layer(**_layer)
+    return antenne.change_layer(**_layer),bp
+
 
 
 def inductance(nb_l_horizontal:int=1,
@@ -922,10 +925,10 @@ def inductance(nb_l_horizontal:int=1,
                datatype:int=0,
                name: str='',
                color: str=''
-               ):
+               )-> PolygonSet:
     """
     Return an indutance in serie. Used for the butterworth filters.
-    the inductance consist in a microstrip zig-zaging in a groundplane-less square.
+    The inductance consists in a microstrip zig-zaging in a groundplane-free rectangle.
 
     Args:
         nb_l_horizontal: number of time the microstrip will go from one side to an other, the first and the last half-length microstrip dont count.
@@ -942,7 +945,6 @@ def inductance(nb_l_horizontal:int=1,
         PolygonSet: Set of polygons containing the indutance
     """
 
-    from pygdsdesign.transmission_lines.cpw_polar import CPWPolar
     from pygdsdesign.transmission_lines.microstrip_polar import MicroStripPolar
 
     _layer: Dict[str, Any] = {'layer'    : layer,
@@ -951,7 +953,8 @@ def inductance(nb_l_horizontal:int=1,
                               'color'    : color}
 
     dy= 5+5+ (nb_l_horizontal+2)*l_microstrip_width + len_l_vertical*(nb_l_horizontal+1)
-    dx= len_l_horizontal + l_microstrip_width*3  +6
+    dx= len_l_horizontal + l_microstrip_width*20
+
 
     m=MicroStripPolar(l_microstrip_width,np.pi/2)
     m.add_line(5)
@@ -959,7 +962,7 @@ def inductance(nb_l_horizontal:int=1,
     m.add_line(len_l_horizontal/2-l_microstrip_width/2)
     m.add_turn(l_microstrip_width/2,-np.pi/2)
 
-    if nb_l_horizontal%2 == 1:
+    if nb_l_horizontal%2 == 1: #the number of horizontal repition is odd, first we use loop to create nb_l_horizontal - 1 strip, and then we add the last one. 
         for i in range(int((nb_l_horizontal-1)/2)):
            m.add_line(len_l_vertical)
            m.add_turn(l_microstrip_width/2,-np.pi/2)
@@ -975,7 +978,7 @@ def inductance(nb_l_horizontal:int=1,
         m.add_line(+len_l_horizontal)
         m.add_turn(l_microstrip_width/2,+np.pi/2)
         m.add_line(len_l_vertical)
-        #last half horizotan
+        #last half horizotal
         m.add_turn(l_microstrip_width/2,np.pi/2)
         m.add_line(len_l_horizontal/2-l_microstrip_width/2)
         m.add_turn(l_microstrip_width/2,-np.pi/2)
@@ -989,7 +992,7 @@ def inductance(nb_l_horizontal:int=1,
             m.add_turn(l_microstrip_width/2,+np.pi/2)
             m.add_line(+len_l_horizontal)
             m.add_turn(l_microstrip_width/2,-np.pi/2)
-
+        #last half horizotal
         m.add_line(len_l_vertical)
         m.add_turn(l_microstrip_width/2,-np.pi/2)
         m.add_line(len_l_horizontal/2-l_microstrip_width/2)
@@ -1024,11 +1027,11 @@ def butterworth_filter(central_conductor_width:float=4,
                        datatype:int=0,
                        name: str='',
                        color: str=''
-                       ):
+                       )-> PolygonSet:
     """
-    Return an indutance in serie. Used for the butterworth filters.
-    the inductance consist in a microstrip zig-zaging in a groundplane-less square.
-
+    Return a 5th-order butterworth filter and its bounding polygons.
+    see \pygdsdesign\examples\butterworth_filter_parameters.png for a graphical reprensations of the parameters.
+    
     Args:
         central_conductor_width: width of the central CPW.
             Defaults to 4 um
@@ -1063,10 +1066,10 @@ def butterworth_filter(central_conductor_width:float=4,
         layer,datatype,name,color: Used for naming the metal layer
             Defaults to 0,0,'',''.
     Returns:
-        PolygonSet: Set of polygons containing the butterworth filter.
+        PolygonSet: Set of polygons containing the butterworth filter
+        PolygonSet: Set of polygons containing the butterworth filter bounding polygons.
     """
     from pygdsdesign.transmission_lines.cpw_polar import CPWPolar
-    from pygdsdesign.transmission_lines.microstrip_polar import MicroStripPolar
 
     _layer: Dict[str, Any] = {'layer'    : layer,
                               'datatype' : datatype,
@@ -1076,13 +1079,16 @@ def butterworth_filter(central_conductor_width:float=4,
     tot = PolygonSet(polygons=[[(0,0)]])
     bp = PolygonSet()
 
-    capa1=capacitance(c_arm_length=c_arm_length3,c_central_width=c_central_width,arm_width=arm_width,gap=gap,length=length[0],entrance1=True,entrance2=False).translate(sep_antenna_central + central_conductor_width/2 +central_conductor_gap,max(c_arm_length3)/2+gap + sep_bot_top)
-    capa2=capacitance(c_arm_length=c_arm_length3,c_central_width=c_central_width,arm_width=arm_width,gap=gap,length=length[0],entrance1=True,entrance2=False).rotate(np.pi).translate(-(sep_antenna_central + central_conductor_width/2 +central_conductor_gap),max(c_arm_length3)/2+gap+ sep_bot_top)
-
+    capa1,bp1=capacitance(c_arm_length=c_arm_length3,c_central_width=c_central_width,arm_width=arm_width,gap=gap,length=length[0],port1=True,port2=False)
+    capa2,bp2=capacitance(c_arm_length=c_arm_length3,c_central_width=c_central_width,arm_width=arm_width,gap=gap,length=length[0],port1=True,port2=False)
+    capa1=capa1.translate(sep_antenna_central + central_conductor_width/2 +central_conductor_gap,max(c_arm_length3)/2+gap + sep_bot_top)
     tot+=capa1
-    tot+=capa2
-    bp+=Rectangle(capa1.get_bounding_box()[0],capa1.get_bounding_box()[1])
-    bp+=Rectangle(capa2.get_bounding_box()[0],capa2.get_bounding_box()[1])
+    tot+=capa2.rotate(np.pi).translate(-(sep_antenna_central + central_conductor_width/2 +central_conductor_gap),max(c_arm_length3)/2+gap+ sep_bot_top)
+    bp+=bp1.translate(sep_antenna_central + central_conductor_width/2 +central_conductor_gap,max(c_arm_length3)/2+gap + sep_bot_top)
+    bp+=bp2.rotate(np.pi).translate(-(sep_antenna_central + central_conductor_width/2 +central_conductor_gap),max(c_arm_length3)/2+gap+ sep_bot_top)
+
+    #bp+=Rectangle(capa1.get_bounding_box()[0],capa1.get_bounding_box()[1])
+    #bp+=Rectangle(capa2.get_bounding_box()[0],capa2.get_bounding_box()[1])
 
     central=CPWPolar(central_conductor_width,central_conductor_gap,np.pi/2)
     central.add_line(max(c_arm_length3)+2*gap +sep_bot_top)
@@ -1106,20 +1112,23 @@ def butterworth_filter(central_conductor_width:float=4,
     tot+=central.translate(0,i1.get_center()[1]+i1.get_size()[1]/2)
     bp+=Rectangle(central.get_bounding_box()[0],central.get_bounding_box()[1])
 
-    c1=capacitance(c_arm_length=c_arm_length1,c_central_width=c_central_width,arm_width=arm_width,gap=gap,length=length[1],entrance1=True,entrance2=False).translate(sep_antenna_central + central_conductor_width/2 +central_conductor_gap, central.ref[1] +max(c_arm_length1)/2 + gap)
-    c2=capacitance(c_arm_length=c_arm_length1,c_central_width=c_central_width,arm_width=arm_width,gap=gap,length=length[1],entrance1=True,entrance2=False).rotate(np.pi).translate(-(sep_antenna_central + central_conductor_width/2 +central_conductor_gap) ,central.ref[1] +max(c_arm_length1)/2 + gap )
-    c3=capacitance(c_arm_length=c_arm_length2,c_central_width=central_conductor_width,arm_width=arm_width,gap=gap,length=length[1],entrance1=True,entrance2=True).rotate(np.pi/2).translate(0, c1.get_center()[1]+c1.get_size()[1]/2 )
-    c4=capacitance(c_arm_length=c_arm_length1,c_central_width=c_central_width,arm_width=arm_width,gap=gap,length=length[1],entrance1=True,entrance2=False).translate(sep_antenna_central + central_conductor_width/2 +central_conductor_gap, c3.get_center()[1]+c3.get_size()[1]/2  +max(c_arm_length1)/2 + gap)
-    c5=capacitance(c_arm_length=c_arm_length1,c_central_width=c_central_width,arm_width=arm_width,gap=gap,length=length[1],entrance1=True,entrance2=False).rotate(np.pi).translate(-(sep_antenna_central + central_conductor_width/2 +central_conductor_gap) ,c3.get_center()[1]+c3.get_size()[1]/2  +max(c_arm_length1)/2 + gap)
-    tot+=c1
-    tot+=c2
-    tot+=c4
-    tot+=c5
-    bp+=Rectangle(c1.get_bounding_box()[0],c1.get_bounding_box()[1])
-    bp+=Rectangle(c2.get_bounding_box()[0],c2.get_bounding_box()[1])
-    bp+=Rectangle(c3.get_bounding_box()[0],c3.get_bounding_box()[1])
-    bp+=Rectangle(c4.get_bounding_box()[0],c4.get_bounding_box()[1])
-    bp+=Rectangle(c5.get_bounding_box()[0],c5.get_bounding_box()[1])
+    c1,b1=capacitance(c_arm_length=c_arm_length1,c_central_width=c_central_width,arm_width=arm_width,gap=gap,length=length[1],port1=True,port2=False)
+    c2,b2=capacitance(c_arm_length=c_arm_length1,c_central_width=c_central_width,arm_width=arm_width,gap=gap,length=length[1],port1=True,port2=False)
+    c3,b3=capacitance(c_arm_length=c_arm_length2,c_central_width=central_conductor_width,arm_width=arm_width,gap=gap,length=length[1],port1=True,port2=True)
+    c4,b4=capacitance(c_arm_length=c_arm_length1,c_central_width=c_central_width,arm_width=arm_width,gap=gap,length=length[1],port1=True,port2=False)
+    c5,b5=capacitance(c_arm_length=c_arm_length1,c_central_width=c_central_width,arm_width=arm_width,gap=gap,length=length[1],port1=True,port2=False)
+
+    tot+=c1.translate(sep_antenna_central + central_conductor_width/2 +central_conductor_gap, central.ref[1] +max(c_arm_length1)/2 + gap)
+    tot+=c2.rotate(np.pi).translate(-(sep_antenna_central + central_conductor_width/2 +central_conductor_gap) ,central.ref[1] +max(c_arm_length1)/2 + gap )
+    c3=c3.rotate(np.pi/2).translate(0, c1.get_center()[1]+c1.get_size()[1]/2 )
+    tot+=c4.translate(sep_antenna_central + central_conductor_width/2 +central_conductor_gap, c3.get_center()[1]+c3.get_size()[1]/2  +max(c_arm_length1)/2 + gap)
+    tot+=c5.rotate(np.pi).translate(-(sep_antenna_central + central_conductor_width/2 +central_conductor_gap) ,c3.get_center()[1]+c3.get_size()[1]/2  +max(c_arm_length1)/2 + gap)
+
+    bp+=b1.translate(sep_antenna_central + central_conductor_width/2 +central_conductor_gap, central.ref[1] +max(c_arm_length1)/2 + gap)
+    bp+=b2.rotate(np.pi).translate(-(sep_antenna_central + central_conductor_width/2 +central_conductor_gap) ,central.ref[1] +max(c_arm_length1)/2 + gap )
+    bp+=b3.rotate(np.pi/2).translate(0, c1.get_center()[1]+c1.get_size()[1]/2 )
+    bp+=b4.translate(sep_antenna_central + central_conductor_width/2 +central_conductor_gap, c3.get_center()[1]+c3.get_size()[1]/2  +max(c_arm_length1)/2 + gap)
+    bp+=b5.rotate(np.pi).translate(-(sep_antenna_central + central_conductor_width/2 +central_conductor_gap) ,c3.get_center()[1]+c3.get_size()[1]/2  +max(c_arm_length1)/2 + gap)
 
     central1=CPWPolar(central_conductor_width,central_conductor_gap,np.pi/2)
     central1.add_line(c1.get_size()[1]).translate(0,central.ref[1])
@@ -1156,12 +1165,12 @@ def butterworth_filter(central_conductor_width:float=4,
     tot+=i2
     bp+=Rectangle(i2.get_bounding_box()[0],i2.get_bounding_box()[1])
 
-    capa1=capacitance(c_arm_length=c_arm_length3,c_central_width=c_central_width,arm_width=arm_width,gap=gap,length=length[0],entrance1=True,entrance2=False).translate(sep_antenna_central + central_conductor_width/2 +central_conductor_gap,i2.get_center()[1]+i2.get_size()[1]/2+ max(c_arm_length3)/2+gap + sep_antenna_indutance)
-    capa2=capacitance(c_arm_length=c_arm_length3,c_central_width=c_central_width,arm_width=arm_width,gap=gap,length=length[0],entrance1=True,entrance2=False).rotate(np.pi).translate(-(sep_antenna_central + central_conductor_width/2 +central_conductor_gap),i2.get_center()[1]+i2.get_size()[1]/2 + max(c_arm_length3)/2+gap+ sep_antenna_indutance)
-    tot+=capa1
-    tot+=capa2
-    bp+=Rectangle(capa1.get_bounding_box()[0],capa1.get_bounding_box()[1])
-    bp+=Rectangle(capa2.get_bounding_box()[0],capa2.get_bounding_box()[1])
+    capa1,bp1=capacitance(c_arm_length=c_arm_length3,c_central_width=c_central_width,arm_width=arm_width,gap=gap,length=length[0],port1=True,port2=False)
+    capa2,bp2=capacitance(c_arm_length=c_arm_length3,c_central_width=c_central_width,arm_width=arm_width,gap=gap,length=length[0],port1=True,port2=False)
+    tot+=capa1.translate(sep_antenna_central + central_conductor_width/2 +central_conductor_gap,i2.get_center()[1]+i2.get_size()[1]/2+ max(c_arm_length3)/2+gap + sep_antenna_indutance)
+    tot+=capa2.rotate(np.pi).translate(-(sep_antenna_central + central_conductor_width/2 +central_conductor_gap),i2.get_center()[1]+i2.get_size()[1]/2 + max(c_arm_length3)/2+gap+ sep_antenna_indutance)
+    bp+=bp1.translate(sep_antenna_central + central_conductor_width/2 +central_conductor_gap,i2.get_center()[1]+i2.get_size()[1]/2+ max(c_arm_length3)/2+gap + sep_antenna_indutance)
+    bp+=bp2.rotate(np.pi).translate(-(sep_antenna_central + central_conductor_width/2 +central_conductor_gap),i2.get_center()[1]+i2.get_size()[1]/2 + max(c_arm_length3)/2+gap+ sep_antenna_indutance)
 
     central=CPWPolar(central_conductor_width,central_conductor_gap,np.pi/2)
     central.add_line(sep_antenna_indutance+ sep_bot_top + max(c_arm_length3) + gap*2).translate(0,i2.get_center()[1]+i2.get_size()[1]/2)

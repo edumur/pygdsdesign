@@ -9,6 +9,7 @@ from pygdsdesign.polygonSet import PolygonSet
 from pygdsdesign.transmission_lines.transmission_line import TransmissionLine
 from pygdsdesign.typing_local import Coordinate
 from pygdsdesign.shapes import butterworth_filter
+from pygdsdesign.functions import distance
 
 class CPWPolar(TransmissionLine):
 
@@ -466,26 +467,27 @@ class CPWPolar(TransmissionLine):
     #
     ###########################################################################
 
-    def add_butterworth_filter(self,central_conductor_width=4,
-                       central_conductor_gap=0.2,
-                       sep_bot_top=6,
-                       sep_antenna_indutance=6,
-                       sep_inductance_antenna=6,
-                       sep_antenna_central=2,#
-                       nb_l_horizontal=1,
-                       len_l_horizontal=70,
-                       len_l_vertical=5,
-                       l_microstrip_width=0.5,#
-                       c_arm_length1=[18,26,34,34,26,18],
-                       c_arm_length2=[18,28,38,38,28,18],
-                       c_arm_length3=[34,26,18],
-                       c_central_width=2,
-                       arm_width=2,
-                       gap=0.2,
-                       length=[14,32],
-                       ):
+    def add_butterworth_filter(self,central_conductor_width:float=4,
+                       central_conductor_gap:float=0.2,
+                       sep_bot_top:float=6,
+                       sep_antenna_indutance:float=6,
+                       sep_inductance_antenna:float=6,
+                       sep_antenna_central:float=6,#
+                       nb_l_horizontal:int=1,
+                       len_l_horizontal:float=70,
+                       len_l_vertical:float=5,
+                       l_microstrip_width:float=0.5,#
+                       c_arm_length1:list=[18,26,34,34,26,18],
+                       c_arm_length2:list=[18,28,38,38,28,18],
+                       c_arm_length3:list=[34,26,18],
+                       c_central_width:float=2,
+                       arm_width:float=2,
+                       gap:float=0.2,
+                       length:list=[14,32],
+                       )-> PolygonSet:
         """
-        Create a butterworth filter and its bouding polygons.
+        Return a 5th-order butterworth filter and its bounding polygons.
+        see \pygdsdesign\examples\butterworth_filter_parameters.png for a graphical reprensations of the parameters.
 
         Args:
             central_conductor_width: width of the central CPW.
@@ -521,41 +523,30 @@ class CPWPolar(TransmissionLine):
             layer,datatype,name,color: Used for naming the metal layer
                 Defaults to 0,0,'',''.
         """
-        b_filter=PolygonSet()
-        bp=PolygonSet()
-        a,b= butterworth_filter(central_conductor_width,central_conductor_gap,sep_bot_top,sep_antenna_indutance,sep_inductance_antenna,sep_antenna_central,nb_l_horizontal,len_l_horizontal,len_l_vertical,l_microstrip_width,c_arm_length1,c_arm_length2,c_arm_length3,c_central_width,arm_width,gap,length,
+
+        b_filter,bp= butterworth_filter(central_conductor_width,central_conductor_gap,sep_bot_top,sep_antenna_indutance,sep_inductance_antenna,sep_antenna_central,nb_l_horizontal,len_l_horizontal,len_l_vertical,l_microstrip_width,c_arm_length1,c_arm_length2,c_arm_length3,c_central_width,arm_width,gap,length,
                           layer=self._layer,
                           datatype=self._datatype,
                           name=self._name,
                           color=self._color)
 
-        b_filter+=a
-        bp+=b
-
-        d= b_filter.get_size()[1]
-        p=b_filter.rotate(self._angle-np.pi/2)
-        bp=bp.rotate(self._angle-np.pi/2)
-
-        self._bounding_polygon += bp.translate(*self.ref).change_layer(1)
-        self._add(p.translate(*self.ref))
+        d=b_filter.get_size()[1]
+        self._bounding_polygon += bp.rotate(self._angle-np.pi/2).translate(*self.ref).change_layer(1)
+        self._add(b_filter.rotate(self._angle-np.pi/2).translate(*self.ref))
         self.ref = [self.ref[0]+ np.cos(self._angle) * d, self.ref[1]+ np.sin(self._angle) * d]
         return self
 
 
-    def goto(self, p_destination):
+    def goto(self, p_destination:PolygonSet)-> PolygonSet:
         """
-    Create a link between two CPWs.
-
-    Args:
-        p_destination: CPWPolar instance of the destination.
+        Create a link between two CPWs.
+        (If someone, want to enhance this function, they may want to start from scratch.)
+        Args:
+            p_destination: CPWPolar instance of the destination.
         """
-        def distance(x1:float,y1:float,x2:float,y2:float) -> float:
-            """Return the distance between the two point (x1;y1) and (x2;y2)"""
-            return np.sqrt((x1-x2)**2 + (y2-y1)**2)
-
-        largeur= self._w/2 + self._s
+        total_half_width= self._w/2 + self._s
         ref2=p_destination.ref
-        angle2=(p_destination._angle+np.pi) %(np.sign(p_destination._angle+1e-9)*2*np.pi)
+        angle2=(p_destination._angle+np.pi) %(np.sign(p_destination._angle+1e-9)*2*np.pi) #we add 1e-9 because np.sign(0) returns 0, and x % 0 is undefined.
         if angle2 > np.pi:
             angle2-=2*np.pi
         if angle2 < -np.pi:
@@ -569,19 +560,17 @@ class CPWPolar(TransmissionLine):
         if angle1 < -np.pi:
             angle1+=2*np.pi
 
-        x1=(ref1[0]+np.cos(angle1-np.pi/2)*largeur)
-        y1=(ref1[1]+np.sin(angle1-np.pi/2)*largeur)
+        x1=(ref1[0]+np.cos(angle1-np.pi/2)*total_half_width)
+        y1=(ref1[1]+np.sin(angle1-np.pi/2)*total_half_width)
 
-        x2=(ref1[0]-np.cos(angle1-np.pi/2)*largeur)
-        y2=(ref1[1]-np.sin(angle1-np.pi/2)*largeur)
+        x2=(ref1[0]-np.cos(angle1-np.pi/2)*total_half_width)
+        y2=(ref1[1]-np.sin(angle1-np.pi/2)*total_half_width)
 
+        x3=ref2[0]+np.cos(angle2-np.pi/2)*total_half_width
+        y3=ref2[1]+np.sin(angle2-np.pi/2)*total_half_width
 
-        x3=ref2[0]+np.cos(angle2-np.pi/2)*largeur
-        y3=ref2[1]+np.sin(angle2-np.pi/2)*largeur
-
-        x4=ref2[0]-np.cos(angle2-np.pi/2)*largeur
-        y4=ref2[1]-np.sin(angle2-np.pi/2)*largeur
-
+        x4=ref2[0]-np.cos(angle2-np.pi/2)*total_half_width
+        y4=ref2[1]-np.sin(angle2-np.pi/2)*total_half_width
 
         xy=[distance(x1,y1,x3,y3),distance(x1,y1,x4,y4),distance(x2,y2,x3,y3),distance(x2,y2,x4,y4)]
         xy_min=min(xy)
@@ -615,7 +604,7 @@ class CPWPolar(TransmissionLine):
             if turn1 < -np.pi:
                 turn1+=2*np.pi
 
-            self.add_turn(largeur, turn1)
+            self.add_turn(total_half_width, turn1)
             self.add_line(xy_min)
 
             turn2=(angle2-x)
@@ -625,12 +614,12 @@ class CPWPolar(TransmissionLine):
             if turn2 < -np.pi:
                 turn2+=2*np.pi
 
-            self.add_turn(largeur, turn2)
+            self.add_turn(total_half_width, turn2)
 
         else:
             if min_==2:
-                self.add_turn(largeur,np.pi/2)
+                self.add_turn(total_half_width,np.pi/2)
             if min_==1:
-                self.add_turn(largeur,-np.pi/2)
+                self.add_turn(total_half_width,-np.pi/2)
             self.goto(p_destination)
         return self
