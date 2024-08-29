@@ -412,15 +412,14 @@ class CPWPolar(TransmissionLine):
         a,b = r.get_bounding_box()
         self._add(r.translate(*self.ref).rotate(self._angle-np.pi/2,[self.ref[0],self.ref[1]]))
 
-
-        if update_ref:
-            self.ref = [self.ref[0]+width*np.cos(self._angle), self.ref[1]+width*np.sin(self._angle)]
-
         # update bounding polygon
         bp = Rectangle((a[0], a[1]),
                         (b[0], b[1])).translate(*self.ref).rotate(self._angle-np.pi/2,[self.ref[0],self.ref[1]])
         self._bounding_polygon+=bp
 
+        if update_ref:
+            self.ref = [self.ref[0]+width*np.cos(self._angle), self.ref[1]+width*np.sin(self._angle)]
+            
         return self
 
 
