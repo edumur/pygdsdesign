@@ -1,4 +1,5 @@
 import numpy as np
+import math
 import copy
 from typing import Callable, Tuple, Optional, Union
 from scipy.integrate import quad
@@ -7,7 +8,8 @@ from pygdsdesign.polygons import Rectangle
 from pygdsdesign.polygonSet import PolygonSet
 from pygdsdesign.transmission_lines.transmission_line import TransmissionLine
 from pygdsdesign.typing_local import Coordinate
-
+from pygdsdesign.shapes import butterworth_filter
+from pygdsdesign.functions import distance
 
 class CPWPolar(TransmissionLine):
 
@@ -410,15 +412,14 @@ class CPWPolar(TransmissionLine):
         a,b = r.get_bounding_box()
         self._add(r.translate(*self.ref).rotate(self._angle-np.pi/2,[self.ref[0],self.ref[1]]))
 
-
-        if update_ref:
-            self.ref = [self.ref[0]+width*np.cos(self._angle), self.ref[1]+width*np.sin(self._angle)]
-
         # update bounding polygon
         bp = Rectangle((a[0], a[1]),
                         (b[0], b[1])).translate(*self.ref).rotate(self._angle-np.pi/2,[self.ref[0],self.ref[1]])
         self._bounding_polygon+=bp
 
+        if update_ref:
+            self.ref = [self.ref[0]+width*np.cos(self._angle), self.ref[1]+width*np.sin(self._angle)]
+            
         return self
 
 
@@ -456,4 +457,168 @@ class CPWPolar(TransmissionLine):
         if update_ref:
             added_ref = self._rot(self._w/2 + self._s, 0,self._angle)
             self.ref = [self.ref[0]+added_ref[0], self.ref[1]-added_ref[1]]
+        return self
+
+
+    ###########################################################################
+    #
+    #                             misc
+    #
+    ###########################################################################
+
+    def add_butterworth_filter(self,central_conductor_width:float=4,
+                       central_conductor_gap:float=0.2,
+                       sep_bot_top:float=6,
+                       sep_antenna_indutance:float=6,
+                       sep_inductance_antenna:float=6,
+                       sep_antenna_central:float=6,#
+                       nb_l_horizontal:int=1,
+                       len_l_horizontal:float=70,
+                       len_l_vertical:float=5,
+                       l_microstrip_width:float=0.5,#
+                       c_arm_length1:list=[18,26,34,34,26,18],
+                       c_arm_length2:list=[18,28,38,38,28,18],
+                       c_arm_length3:list=[34,26,18],
+                       c_central_width:float=2,
+                       arm_width:float=2,
+                       gap:float=0.2,
+                       length:list=[14,32],
+                       )-> PolygonSet:
+        """
+        Return a 5th-order, cauer topology, butterworth filter and its bounding polygons.
+        see \pygdsdesign\examples\butterworth_filter_parameters.png for a graphical reprensations of the parameters.
+
+        Args:
+            central_conductor_width: width of the central CPW.
+                Defaults to 4 um
+            central_conductor_gap: gap of the central CPW.
+                Defaults to 0.2um
+            sep_bot_top: distance added at the start and at the end of the filter. used to separate the filter from other elements.
+                Defaults to 6um.
+            sep_antenna_indutance: distance between the first capacitance and the first indutance, and between the second inductance and the third capacitance.
+                Defaults to 6um.
+            sep_inductance_antenna: distance between the first inductance and the second capacitance and between the second capacitance and the second inductance.
+                Defaults to 6um.
+            sep_antenna_central: distance between the capacitance and the central conductor.
+                Defaults to 6um.
+            nb_l_horizontal: inductance parameters. number of time the microstrip will go from one side to an other, the first and the last half-length microstrip dont count.
+                Defaults to 1.
+            len_l_horizontal: inductance parameters. length of the microstrip going from the left (or right) to the right (or left) side.
+                Defaults to 70 um.
+            len_l_vertical: inductance parameters. distance between two horizontal microstrip.
+                Defaults to 5 um.
+            l_microstrip_width: inductance parameters. width of the microstrip.
+                Defaults to 0.5um.
+            c_arm_length1/2/3: capacitance parameters. length of the arm of the first and third capacitance/ the first and the third part of the second capacitance / the second part of the second capacitance.
+                Defaults to [18,24,36,24,18] [um].
+            c_central_width: capacitance parameters. width of the central conductor, connecting the arms.
+                Defaults to 2 um.
+            arm_width: capacitance parameters. width of the arms.
+                Defaults to 2 um.
+            gap: capacitance parameters. distance between the the conductor and the ground plane.
+                Defaults to 0.2 um.
+            length: capacitance parameters. lengths of the central conductor of the capacitance, connecting the arms.
+                Defaults to [14,32]um.
+            layer,datatype,name,color: Used for naming the metal layer
+                Defaults to 0,0,'',''.
+        """
+
+        b_filter,bp= butterworth_filter(central_conductor_width,central_conductor_gap,sep_bot_top,sep_antenna_indutance,sep_inductance_antenna,sep_antenna_central,nb_l_horizontal,len_l_horizontal,len_l_vertical,l_microstrip_width,c_arm_length1,c_arm_length2,c_arm_length3,c_central_width,arm_width,gap,length,
+                          layer=self._layer,
+                          datatype=self._datatype,
+                          name=self._name,
+                          color=self._color)
+
+        d=b_filter.get_size()[1]
+        self._bounding_polygon += bp.rotate(self._angle-np.pi/2).translate(*self.ref).change_layer(1)
+        self._add(b_filter.rotate(self._angle-np.pi/2).translate(*self.ref))
+        self.ref = [self.ref[0]+ np.cos(self._angle) * d, self.ref[1]+ np.sin(self._angle) * d]
+        return self
+
+
+    def goto(self, p_destination:PolygonSet)-> PolygonSet:
+        """
+        Create a link between two CPWs.
+        (If someone, want to enhance this function, they may want to start from scratch.)
+        Args:
+            p_destination: CPWPolar instance of the destination.
+        """
+        total_half_width= self._w/2 + self._s
+        ref2=p_destination.ref
+        angle2=(p_destination._angle+np.pi) %(np.sign(p_destination._angle+1e-9)*2*np.pi) #we add 1e-9 because np.sign(0) returns 0, and x % 0 is undefined.
+        if angle2 > np.pi:
+            angle2-=2*np.pi
+        if angle2 < -np.pi:
+            angle2+=2*np.pi
+
+        ref1=self.ref
+
+        angle1=self._angle %(np.sign(self._angle+1e-9)*2*np.pi)
+        if angle1 > np.pi:
+            angle1-=2*np.pi
+        if angle1 < -np.pi:
+            angle1+=2*np.pi
+
+        x1=(ref1[0]+np.cos(angle1-np.pi/2)*total_half_width)
+        y1=(ref1[1]+np.sin(angle1-np.pi/2)*total_half_width)
+
+        x2=(ref1[0]-np.cos(angle1-np.pi/2)*total_half_width)
+        y2=(ref1[1]-np.sin(angle1-np.pi/2)*total_half_width)
+
+        x3=ref2[0]+np.cos(angle2-np.pi/2)*total_half_width
+        y3=ref2[1]+np.sin(angle2-np.pi/2)*total_half_width
+
+        x4=ref2[0]-np.cos(angle2-np.pi/2)*total_half_width
+        y4=ref2[1]-np.sin(angle2-np.pi/2)*total_half_width
+
+        xy=[distance(x1,y1,x3,y3),distance(x1,y1,x4,y4),distance(x2,y2,x3,y3),distance(x2,y2,x4,y4)]
+        xy_min=min(xy)
+        min_= np.where(xy==xy_min)[0][0]
+
+        if min_==0:
+            dx=x3-x1
+            dy=y3-y1
+        if min_==1:
+            dx=x4-x1
+            dy=y4-y1
+        if min_==2:
+            dx=x3-x2
+            dy=y3-y2
+        if min_==3:
+            dx=x4-x2
+            dy=y4-y2
+
+        if min_ == 0 or min_ ==3:
+            x=math.atan2(dy,dx)%(2*np.pi)
+
+            if x > np.pi:
+                x-=2*np.pi
+            if x < -np.pi:
+                x+=2*np.pi
+
+            turn1 = (x - angle1)
+
+            if turn1 > np.pi:
+                turn1-=2*np.pi
+            if turn1 < -np.pi:
+                turn1+=2*np.pi
+
+            self.add_turn(total_half_width, turn1)
+            self.add_line(xy_min)
+
+            turn2=(angle2-x)
+
+            if turn2 > np.pi:
+                turn2-=2*np.pi
+            if turn2 < -np.pi:
+                turn2+=2*np.pi
+
+            self.add_turn(total_half_width, turn2)
+
+        else:
+            if min_==2:
+                self.add_turn(total_half_width,np.pi/2)
+            if min_==1:
+                self.add_turn(total_half_width,-np.pi/2)
+            self.goto(p_destination)
         return self

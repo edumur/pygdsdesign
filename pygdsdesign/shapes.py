@@ -7,7 +7,7 @@ import warnings
 from pygdsdesign.library import GdsLibrary
 from pygdsdesign.polygonSet import PolygonSet
 from pygdsdesign.polygons import Rectangle, Text
-from pygdsdesign.operation import boolean, offset, merge
+from pygdsdesign.operation import boolean, offset, merge, addition, subtraction, inverse_polarity
 
 
 def crosses(coordinates: list,
@@ -847,3 +847,340 @@ def spiral(
                       names=[name],
                       colors=[color],
                       datatypes=[datatype])
+
+
+
+def capacitance(c_arm_length:list=[18,24,36,24,18],
+                c_central_width:float=2,
+                arm_width:float=2,
+                gap:float=0.2,
+                length:float=32,
+                port1:bool=False,
+                port2:bool=False,
+                layer:int=0,
+                datatype:int=0,
+                name: str='',
+                color: str=''
+                )-> PolygonSet:
+    """
+    Return a capacitance to ground.
+    This "antenna-like" capacitance consists in a central conductor and "arms" perpendicular to it.
+    The goal is to have a shape with a low number of squares (to reduce the inductance)
+    but with a large circumference to yield a large capacitance to ground.
+    Used for the butterworth filters.
+
+    Args:
+        c_arm_length: length of the arms of the capacitance. connected to the central conductor.
+            Defaults to [18,24,36,24,18] [um].
+        c_central_width: width of the central conductor, connecting the arms.
+            Defaults to 2 um.
+        arm_width: width of the arms.
+            Defaults to 2 um.
+        gap: distance between the the conductor and the ground plane.
+            Defaults to 0.2 um.
+        length: length of the central conductor, connecting the arms.
+            Defaults to 32um.
+        port1/2: Closing or opening the left/right termination of the central conductor, usefull to connect the capacitance to an other CPW.
+            Defaults to False (close).
+        layer,datatype,name,color: Used for naming the metal layer
+            Defaults to 0,0,'',''.
+    Returns:
+        PolygonSet: Set of polygons containing the capacitance
+    """
+
+    _layer: Dict[str, Any] = {'layer'    : layer,
+                              'datatype' : datatype,
+                              'name'     : name,
+                              'color'    : color}
+
+    n=len(c_arm_length)
+    antenna = PolygonSet()
+    m=Rectangle([0,0],[length,-c_central_width])
+    antenna+=m
+    for i in range(n):
+        m=Rectangle([0,0],[arm_width,-c_arm_length[i]])
+        x=  + length/(n-1)*i
+        m.translate(x,c_arm_length[i]/2 -c_central_width/2)
+        antenna+=m
+    r=offset(antenna,gap)
+
+    if port1==True:
+        rec=Rectangle([-gap,0],[0,-c_central_width])
+        antenna = addition(antenna,rec)
+    if port2==True:
+        rec=Rectangle([length,0],[length+gap,-c_central_width])
+        antenna = addition(antenna,rec)
+    antenna= subtraction(r,antenna).translate(+gap,c_central_width/2)
+    bp=r.translate(+gap,c_central_width/2)
+
+    return antenna.change_layer(**_layer),bp
+
+
+
+def inductance(nb_l_horizontal:int=1,
+               len_l_horizontal:float=70,
+               len_l_vertical:float=5,
+               l_microstrip_width:float=0.5,
+               layer:int=0,
+               datatype:int=0,
+               name: str='',
+               color: str=''
+               )-> PolygonSet:
+    """
+    Return an indutance in serie. Used for the butterworth filters.
+    The inductance consists in a microstrip zig-zaging in a groundplane-free rectangle.
+
+    Args:
+        nb_l_horizontal: number of time the microstrip will go from one side to an other, the first and the last half-length microstrip dont count.
+            Defaults to 1.
+        len_l_horizontal: length of the microstrip going from the left (or right) to the right (or left) side.
+            Defaults to 70 um.
+        len_l_vertical: distance between two horizontal microstrip.
+            Defaults to 5 um.
+        l_microstrip_width: width of the microstrip.
+            Defaults to 0.5um.
+        layer,datatype,name,color: Used for naming the metal layer
+            Defaults to 0,0,'',''.
+    Returns:
+        PolygonSet: Set of polygons containing the indutance
+    """
+
+    from pygdsdesign.transmission_lines.microstrip_polar import MicroStripPolar
+
+    _layer: Dict[str, Any] = {'layer'    : layer,
+                              'datatype' : datatype,
+                              'name'     : name,
+                              'color'    : color}
+
+    dy= 5+5+ (nb_l_horizontal+2)*l_microstrip_width + len_l_vertical*(nb_l_horizontal+1)
+    dx= len_l_horizontal + l_microstrip_width*20
+
+
+    m=MicroStripPolar(l_microstrip_width,np.pi/2)
+    m.add_line(5)
+    m.add_turn(l_microstrip_width/2,np.pi/2)
+    m.add_line(len_l_horizontal/2-l_microstrip_width/2)
+    m.add_turn(l_microstrip_width/2,-np.pi/2)
+
+    if nb_l_horizontal%2 == 1: #the number of horizontal repition is odd, first we use loop to create nb_l_horizontal - 1 strip, and then we add the last one. 
+        for i in range(int((nb_l_horizontal-1)/2)):
+           m.add_line(len_l_vertical)
+           m.add_turn(l_microstrip_width/2,-np.pi/2)
+           m.add_line(len_l_horizontal)
+           m.add_turn(l_microstrip_width/2,+np.pi/2)
+           m.add_line(len_l_vertical)
+           m.add_turn(l_microstrip_width/2,+np.pi/2)
+           m.add_line(+len_l_horizontal)
+           m.add_turn(l_microstrip_width/2,-np.pi/2)
+        #last full horizotal
+        m.add_line(len_l_vertical)
+        m.add_turn(l_microstrip_width/2,-np.pi/2)
+        m.add_line(+len_l_horizontal)
+        m.add_turn(l_microstrip_width/2,+np.pi/2)
+        m.add_line(len_l_vertical)
+        #last half horizotal
+        m.add_turn(l_microstrip_width/2,np.pi/2)
+        m.add_line(len_l_horizontal/2-l_microstrip_width/2)
+        m.add_turn(l_microstrip_width/2,-np.pi/2)
+    else:
+        for i in range(int((nb_l_horizontal)/2)):
+            m.add_line(len_l_vertical)
+            m.add_turn(l_microstrip_width/2,-np.pi/2)
+            m.add_line(len_l_horizontal)
+            m.add_turn(l_microstrip_width/2,+np.pi/2)
+            m.add_line(len_l_vertical)
+            m.add_turn(l_microstrip_width/2,+np.pi/2)
+            m.add_line(+len_l_horizontal)
+            m.add_turn(l_microstrip_width/2,-np.pi/2)
+        #last half horizotal
+        m.add_line(len_l_vertical)
+        m.add_turn(l_microstrip_width/2,-np.pi/2)
+        m.add_line(len_l_horizontal/2-l_microstrip_width/2)
+        m.add_turn(l_microstrip_width/2,np.pi/2)
+
+    m.add_line(5)
+    m.translate(dx/2,0)
+    rec=Rectangle([0,0],[dx,dy])
+    induc=subtraction(rec,m).translate(-dx/2,0)
+
+    return induc.change_layer(**_layer)
+
+
+def butterworth_filter(central_conductor_width:float=4,
+                       central_conductor_gap:float=0.2,
+                       sep_bot_top:float=6,
+                       sep_antenna_indutance:float=6,
+                       sep_inductance_antenna:float=6,
+                       sep_antenna_central:float=6,#
+                       nb_l_horizontal:int=1,
+                       len_l_horizontal:float=70,
+                       len_l_vertical:float=5,
+                       l_microstrip_width:float=0.5,#
+                       c_arm_length1:list=[18,26,34,34,26,18],
+                       c_arm_length2:list=[18,28,38,38,28,18],
+                       c_arm_length3:list=[34,26,18],
+                       c_central_width:float=2,
+                       arm_width:float=2,
+                       gap:float=0.2,
+                       length:list=[14,32],
+                       layer:float=0,
+                       datatype:int=0,
+                       name: str='',
+                       color: str=''
+                       )-> PolygonSet:
+    """
+    Return a 5th-order, cauer topology, butterworth filter and its bounding polygons.
+    see \pygdsdesign\examples\butterworth_filter_parameters.png for a graphical reprensations of the parameters.
+
+    Args:
+        central_conductor_width: width of the central CPW.
+            Defaults to 4 um
+        central_conductor_gap: gap of the central CPW.
+            Defaults to 0.2um
+        sep_bot_top: distance added at the start and at the end of the filter. used to separate the filter from other elements.
+            Defaults to 6um.
+        sep_antenna_indutance: distance between the first capacitance and the first indutance, and between the second inductance and the third capacitance.
+            Defaults to 6um.
+        sep_inductance_antenna: distance between the first inductance and the second capacitance and between the second capacitance and the second inductance.
+            Defaults to 6um.
+        sep_antenna_central: distance between the capacitance and the central conductor.
+            Defaults to 6um.
+        nb_l_horizontal: inductance parameters. number of time the microstrip will go from one side to an other, the first and the last half-length microstrip dont count.
+            Defaults to 1.
+        len_l_horizontal: inductance parameters. length of the microstrip going from the left (or right) to the right (or left) side.
+            Defaults to 70 um.
+        len_l_vertical: inductance parameters. distance between two horizontal microstrip.
+            Defaults to 5 um.
+        l_microstrip_width: inductance parameters. width of the microstrip.
+            Defaults to 0.5um.
+        c_arm_length1/2/3: capacitance parameters. length of the arm of the first and third capacitance/ the first and the third part of the second capacitance / the second part of the second capacitance.
+            Defaults to [18,24,36,24,18] [um].
+        c_central_width: capacitance parameters. width of the central conductor, connecting the arms.
+            Defaults to 2 um.
+        arm_width: capacitance parameters. width of the arms.
+            Defaults to 2 um.
+        gap: capacitance parameters. distance between the the conductor and the ground plane.
+            Defaults to 0.2 um.
+        length: capacitance parameters. lengths of the central conductor of the capacitance, connecting the arms.
+            Defaults to [14,32]um.
+        layer,datatype,name,color: Used for naming the metal layer
+            Defaults to 0,0,'',''.
+    Returns:
+        PolygonSet: Set of polygons containing the butterworth filter
+        PolygonSet: Set of polygons containing the butterworth filter bounding polygons.
+    """
+    from pygdsdesign.transmission_lines.cpw_polar import CPWPolar
+
+    _layer: Dict[str, Any] = {'layer'    : layer,
+                              'datatype' : datatype,
+                              'name'     : name,
+                              'color'    : color}
+
+    tot = PolygonSet(polygons=[[(0,0)]])
+    bp = PolygonSet()
+
+    capa1,bp1=capacitance(c_arm_length=c_arm_length3,c_central_width=c_central_width,arm_width=arm_width,gap=gap,length=length[0],port1=True,port2=False)
+    capa2,bp2=capacitance(c_arm_length=c_arm_length3,c_central_width=c_central_width,arm_width=arm_width,gap=gap,length=length[0],port1=True,port2=False)
+    capa1=capa1.translate(sep_antenna_central + central_conductor_width/2 +central_conductor_gap,max(c_arm_length3)/2+gap + sep_bot_top)
+    tot+=capa1
+    tot+=capa2.rotate(np.pi).translate(-(sep_antenna_central + central_conductor_width/2 +central_conductor_gap),max(c_arm_length3)/2+gap+ sep_bot_top)
+    bp+=bp1.translate(sep_antenna_central + central_conductor_width/2 +central_conductor_gap,max(c_arm_length3)/2+gap + sep_bot_top)
+    bp+=bp2.rotate(np.pi).translate(-(sep_antenna_central + central_conductor_width/2 +central_conductor_gap),max(c_arm_length3)/2+gap+ sep_bot_top)
+
+    #bp+=Rectangle(capa1.get_bounding_box()[0],capa1.get_bounding_box()[1])
+    #bp+=Rectangle(capa2.get_bounding_box()[0],capa2.get_bounding_box()[1])
+
+    central=CPWPolar(central_conductor_width,central_conductor_gap,np.pi/2)
+    central.add_line(max(c_arm_length3)+2*gap +sep_bot_top)
+    central.add_line(sep_antenna_indutance)
+    bp+=Rectangle(central.get_bounding_box()[0],central.get_bounding_box()[1])
+
+    hori=CPWPolar(c_central_width,gap,np.pi)
+    hori.add_line(central_conductor_gap*2 + central_conductor_width + 2* sep_antenna_central).translate(capa1.get_center()[0]-capa1.get_size()[0]/2, capa1.get_center()[1] )
+    bp+=Rectangle(hori.get_bounding_box()[0],hori.get_bounding_box()[1])
+
+    tot+=subtraction(central,boolean(inverse_polarity(hori,safety_marge=0),central,'and',precision=0.0001),precision=0.00001)
+    tot+=subtraction(hori,boolean(inverse_polarity(central,safety_marge=0),hori,'and',precision=0.0001),precision=0.00001)
+
+
+    i1=inductance(nb_l_horizontal=nb_l_horizontal,len_l_horizontal=len_l_horizontal,len_l_vertical=len_l_vertical,l_microstrip_width=l_microstrip_width)
+    tot+=i1.translate(0,central.ref[1])
+    bp+=Rectangle(i1.get_bounding_box()[0],i1.get_bounding_box()[1])
+
+    central=CPWPolar(central_conductor_width,central_conductor_gap,np.pi/2)
+    central.add_line(sep_inductance_antenna)
+    tot+=central.translate(0,i1.get_center()[1]+i1.get_size()[1]/2)
+    bp+=Rectangle(central.get_bounding_box()[0],central.get_bounding_box()[1])
+
+    c1,b1=capacitance(c_arm_length=c_arm_length1,c_central_width=c_central_width,arm_width=arm_width,gap=gap,length=length[1],port1=True,port2=False)
+    c2,b2=capacitance(c_arm_length=c_arm_length1,c_central_width=c_central_width,arm_width=arm_width,gap=gap,length=length[1],port1=True,port2=False)
+    c3,b3=capacitance(c_arm_length=c_arm_length2,c_central_width=central_conductor_width,arm_width=arm_width,gap=gap,length=length[1],port1=True,port2=True)
+    c4,b4=capacitance(c_arm_length=c_arm_length1,c_central_width=c_central_width,arm_width=arm_width,gap=gap,length=length[1],port1=True,port2=False)
+    c5,b5=capacitance(c_arm_length=c_arm_length1,c_central_width=c_central_width,arm_width=arm_width,gap=gap,length=length[1],port1=True,port2=False)
+
+    tot+=c1.translate(sep_antenna_central + central_conductor_width/2 +central_conductor_gap, central.ref[1] +max(c_arm_length1)/2 + gap)
+    tot+=c2.rotate(np.pi).translate(-(sep_antenna_central + central_conductor_width/2 +central_conductor_gap) ,central.ref[1] +max(c_arm_length1)/2 + gap )
+    c3=c3.rotate(np.pi/2).translate(0, c1.get_center()[1]+c1.get_size()[1]/2 )
+    tot+=c4.translate(sep_antenna_central + central_conductor_width/2 +central_conductor_gap, c3.get_center()[1]+c3.get_size()[1]/2  +max(c_arm_length1)/2 + gap)
+    tot+=c5.rotate(np.pi).translate(-(sep_antenna_central + central_conductor_width/2 +central_conductor_gap) ,c3.get_center()[1]+c3.get_size()[1]/2  +max(c_arm_length1)/2 + gap)
+
+    bp+=b1.translate(sep_antenna_central + central_conductor_width/2 +central_conductor_gap, central.ref[1] +max(c_arm_length1)/2 + gap)
+    bp+=b2.rotate(np.pi).translate(-(sep_antenna_central + central_conductor_width/2 +central_conductor_gap) ,central.ref[1] +max(c_arm_length1)/2 + gap )
+    bp+=b3.rotate(np.pi/2).translate(0, c1.get_center()[1]+c1.get_size()[1]/2 )
+    bp+=b4.translate(sep_antenna_central + central_conductor_width/2 +central_conductor_gap, c3.get_center()[1]+c3.get_size()[1]/2  +max(c_arm_length1)/2 + gap)
+    bp+=b5.rotate(np.pi).translate(-(sep_antenna_central + central_conductor_width/2 +central_conductor_gap) ,c3.get_center()[1]+c3.get_size()[1]/2  +max(c_arm_length1)/2 + gap)
+
+    central1=CPWPolar(central_conductor_width,central_conductor_gap,np.pi/2)
+    central1.add_line(c1.get_size()[1]).translate(0,central.ref[1])
+
+    central2=CPWPolar(central_conductor_width,central_conductor_gap,np.pi/2)
+    central2.add_line(c3.get_size()[1]).translate(0,central1.ref[1])
+
+    central3=CPWPolar(central_conductor_width,central_conductor_gap,np.pi/2)
+    central3.add_line(c5.get_size()[1]+ sep_inductance_antenna).translate(0,central2.ref[1])
+
+    hori1=CPWPolar(c_central_width,gap,np.pi)
+    hori1.add_line(central_conductor_gap*2 + central_conductor_width + 2* sep_antenna_central).translate(c1.get_center()[0]-c1.get_size()[0]/2, c1.get_center()[1] )
+
+    hori2=CPWPolar(c_central_width,gap,np.pi)
+    hori2.add_line(central_conductor_gap*2 + central_conductor_width + 2* sep_antenna_central).translate(c4.get_center()[0]-c4.get_size()[0]/2, c4.get_center()[1] )
+
+    tot+=subtraction(central1,boolean(inverse_polarity(hori1,safety_marge=0),central1,'and',precision=0.0001),precision=0.00001)
+    tot+=subtraction(hori1,boolean(inverse_polarity(central1,safety_marge=0),hori1,'and',precision=0.0001),precision=0.00001)
+
+    tot+=subtraction(central2,boolean(inverse_polarity(c3,safety_marge=0),central2,'and',precision=0.0001),precision=0.00001)
+    tot+=subtraction(c3,boolean(inverse_polarity(central2,safety_marge=0),c3,'and',precision=0.0001),precision=0.00001)
+
+    tot+=subtraction(central3,boolean(inverse_polarity(hori2,safety_marge=0),central3,'and',precision=0.0001),precision=0.00001)
+    tot+=subtraction(hori2,boolean(inverse_polarity(central3,safety_marge=0),hori2,'and',precision=0.0001),precision=0.00001)
+
+    bp+=Rectangle(central1.get_bounding_box()[0],central1.get_bounding_box()[1])
+    bp+=Rectangle(central2.get_bounding_box()[0],central2.get_bounding_box()[1])
+    bp+=Rectangle(central3.get_bounding_box()[0],central3.get_bounding_box()[1])
+    bp+=Rectangle(hori1.get_bounding_box()[0],hori1.get_bounding_box()[1])
+    bp+=Rectangle(hori2.get_bounding_box()[0],hori2.get_bounding_box()[1])
+
+
+    i2=inductance(nb_l_horizontal=nb_l_horizontal,len_l_horizontal=len_l_horizontal,len_l_vertical=len_l_vertical,l_microstrip_width=l_microstrip_width).translate(0,central3.ref[1])
+    tot+=i2
+    bp+=Rectangle(i2.get_bounding_box()[0],i2.get_bounding_box()[1])
+
+    capa1,bp1=capacitance(c_arm_length=c_arm_length3,c_central_width=c_central_width,arm_width=arm_width,gap=gap,length=length[0],port1=True,port2=False)
+    capa2,bp2=capacitance(c_arm_length=c_arm_length3,c_central_width=c_central_width,arm_width=arm_width,gap=gap,length=length[0],port1=True,port2=False)
+    tot+=capa1.translate(sep_antenna_central + central_conductor_width/2 +central_conductor_gap,i2.get_center()[1]+i2.get_size()[1]/2+ max(c_arm_length3)/2+gap + sep_antenna_indutance)
+    tot+=capa2.rotate(np.pi).translate(-(sep_antenna_central + central_conductor_width/2 +central_conductor_gap),i2.get_center()[1]+i2.get_size()[1]/2 + max(c_arm_length3)/2+gap+ sep_antenna_indutance)
+    bp+=bp1.translate(sep_antenna_central + central_conductor_width/2 +central_conductor_gap,i2.get_center()[1]+i2.get_size()[1]/2+ max(c_arm_length3)/2+gap + sep_antenna_indutance)
+    bp+=bp2.rotate(np.pi).translate(-(sep_antenna_central + central_conductor_width/2 +central_conductor_gap),i2.get_center()[1]+i2.get_size()[1]/2 + max(c_arm_length3)/2+gap+ sep_antenna_indutance)
+
+    central=CPWPolar(central_conductor_width,central_conductor_gap,np.pi/2)
+    central.add_line(sep_antenna_indutance+ sep_bot_top + max(c_arm_length3) + gap*2).translate(0,i2.get_center()[1]+i2.get_size()[1]/2)
+    bp+=Rectangle(central.get_bounding_box()[0],central.get_bounding_box()[1])
+
+    hori=CPWPolar(c_central_width,gap,np.pi)
+    hori.add_line(central_conductor_gap*2 + central_conductor_width + 2* sep_antenna_central).translate(capa1.get_center()[0]-capa1.get_size()[0]/2, capa1.get_center()[1] )
+    bp+=Rectangle(hori.get_bounding_box()[0],hori.get_bounding_box()[1])
+
+    tot+=subtraction(central,boolean(inverse_polarity(hori,safety_marge=0),central,'and',precision=0.0001),precision=0.00001)
+    tot+=subtraction(hori,boolean(inverse_polarity(central,safety_marge=0),hori,'and',precision=0.0001),precision=0.00001)
+
+    return merge(tot.change_layer(**_layer)),bp
