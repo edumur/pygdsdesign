@@ -7,7 +7,7 @@ import warnings
 from pygdsdesign.library import GdsLibrary
 from pygdsdesign.polygonSet import PolygonSet
 from pygdsdesign.polygons import Rectangle, Text
-from pygdsdesign.operation import boolean, offset, merge, addition, substraction, inverse_polarity
+from pygdsdesign.operation import boolean, offset, merge, addition, subtraction, inverse_polarity
 
 
 def crosses(coordinates: list,
@@ -910,7 +910,7 @@ def capacitance(c_arm_length:list=[18,24,36,24,18],
     if port2==True:
         rec=Rectangle([length,0],[length+gap,-c_central_width])
         antenna = addition(antenna,rec)
-    antenna= substraction(r,antenna).translate(+gap,c_central_width/2)
+    antenna= subtraction(r,antenna).translate(+gap,c_central_width/2)
     bp=r.translate(+gap,c_central_width/2)
 
     return antenna.change_layer(**_layer),bp
@@ -1001,7 +1001,7 @@ def inductance(nb_l_horizontal:int=1,
     m.add_line(5)
     m.translate(dx/2,0)
     rec=Rectangle([0,0],[dx,dy])
-    induc=substraction(rec,m).translate(-dx/2,0)
+    induc=subtraction(rec,m).translate(-dx/2,0)
 
     return induc.change_layer(**_layer)
 
@@ -1099,8 +1099,8 @@ def butterworth_filter(central_conductor_width:float=4,
     hori.add_line(central_conductor_gap*2 + central_conductor_width + 2* sep_antenna_central).translate(capa1.get_center()[0]-capa1.get_size()[0]/2, capa1.get_center()[1] )
     bp+=Rectangle(hori.get_bounding_box()[0],hori.get_bounding_box()[1])
 
-    tot+=substraction(central,boolean(inverse_polarity(hori,safety_marge=0),central,'and',precision=0.0001),precision=0.00001)
-    tot+=substraction(hori,boolean(inverse_polarity(central,safety_marge=0),hori,'and',precision=0.0001),precision=0.00001)
+    tot+=subtraction(central,boolean(inverse_polarity(hori,safety_marge=0),central,'and',precision=0.0001),precision=0.00001)
+    tot+=subtraction(hori,boolean(inverse_polarity(central,safety_marge=0),hori,'and',precision=0.0001),precision=0.00001)
 
 
     i1=inductance(nb_l_horizontal=nb_l_horizontal,len_l_horizontal=len_l_horizontal,len_l_vertical=len_l_vertical,l_microstrip_width=l_microstrip_width)
@@ -1145,14 +1145,14 @@ def butterworth_filter(central_conductor_width:float=4,
     hori2=CPWPolar(c_central_width,gap,np.pi)
     hori2.add_line(central_conductor_gap*2 + central_conductor_width + 2* sep_antenna_central).translate(c4.get_center()[0]-c4.get_size()[0]/2, c4.get_center()[1] )
 
-    tot+=substraction(central1,boolean(inverse_polarity(hori1,safety_marge=0),central1,'and',precision=0.0001),precision=0.00001)
-    tot+=substraction(hori1,boolean(inverse_polarity(central1,safety_marge=0),hori1,'and',precision=0.0001),precision=0.00001)
+    tot+=subtraction(central1,boolean(inverse_polarity(hori1,safety_marge=0),central1,'and',precision=0.0001),precision=0.00001)
+    tot+=subtraction(hori1,boolean(inverse_polarity(central1,safety_marge=0),hori1,'and',precision=0.0001),precision=0.00001)
 
-    tot+=substraction(central2,boolean(inverse_polarity(c3,safety_marge=0),central2,'and',precision=0.0001),precision=0.00001)
-    tot+=substraction(c3,boolean(inverse_polarity(central2,safety_marge=0),c3,'and',precision=0.0001),precision=0.00001)
+    tot+=subtraction(central2,boolean(inverse_polarity(c3,safety_marge=0),central2,'and',precision=0.0001),precision=0.00001)
+    tot+=subtraction(c3,boolean(inverse_polarity(central2,safety_marge=0),c3,'and',precision=0.0001),precision=0.00001)
 
-    tot+=substraction(central3,boolean(inverse_polarity(hori2,safety_marge=0),central3,'and',precision=0.0001),precision=0.00001)
-    tot+=substraction(hori2,boolean(inverse_polarity(central3,safety_marge=0),hori2,'and',precision=0.0001),precision=0.00001)
+    tot+=subtraction(central3,boolean(inverse_polarity(hori2,safety_marge=0),central3,'and',precision=0.0001),precision=0.00001)
+    tot+=subtraction(hori2,boolean(inverse_polarity(central3,safety_marge=0),hori2,'and',precision=0.0001),precision=0.00001)
 
     bp+=Rectangle(central1.get_bounding_box()[0],central1.get_bounding_box()[1])
     bp+=Rectangle(central2.get_bounding_box()[0],central2.get_bounding_box()[1])
@@ -1180,7 +1180,7 @@ def butterworth_filter(central_conductor_width:float=4,
     hori.add_line(central_conductor_gap*2 + central_conductor_width + 2* sep_antenna_central).translate(capa1.get_center()[0]-capa1.get_size()[0]/2, capa1.get_center()[1] )
     bp+=Rectangle(hori.get_bounding_box()[0],hori.get_bounding_box()[1])
 
-    tot+=substraction(central,boolean(inverse_polarity(hori,safety_marge=0),central,'and',precision=0.0001),precision=0.00001)
-    tot+=substraction(hori,boolean(inverse_polarity(central,safety_marge=0),hori,'and',precision=0.0001),precision=0.00001)
+    tot+=subtraction(central,boolean(inverse_polarity(hori,safety_marge=0),central,'and',precision=0.0001),precision=0.00001)
+    tot+=subtraction(hori,boolean(inverse_polarity(central,safety_marge=0),hori,'and',precision=0.0001),precision=0.00001)
 
     return merge(tot.change_layer(**_layer)),bp
