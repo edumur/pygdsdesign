@@ -894,26 +894,26 @@ def capacitance(c_arm_length:list=[18,24,36,24,18],
                               'color'    : color}
 
     n=len(c_arm_length)
-    antenne = PolygonSet()
+    antenna = PolygonSet()
     m=Rectangle([0,0],[length,-c_central_width])
-    antenne+=m
+    antenna+=m
     for i in range(n):
         m=Rectangle([0,0],[arm_width,-c_arm_length[i]])
         x=  + length/(n-1)*i
         m.translate(x,c_arm_length[i]/2 -c_central_width/2)
-        antenne+=m
-    r=offset(antenne,gap)
+        antenna+=m
+    r=offset(antenna,gap)
 
     if port1==True:
         rec=Rectangle([-gap,0],[0,-c_central_width])
-        antenne = addition(antenne,rec)
+        antenna = addition(antenna,rec)
     if port2==True:
         rec=Rectangle([length,0],[length+gap,-c_central_width])
-        antenne = addition(antenne,rec)
-    antenne= substraction(r,antenne).translate(+gap,c_central_width/2)
+        antenna = addition(antenna,rec)
+    antenna= substraction(r,antenna).translate(+gap,c_central_width/2)
     bp=r.translate(+gap,c_central_width/2)
 
-    return antenne.change_layer(**_layer),bp
+    return antenna.change_layer(**_layer),bp
 
 
 
