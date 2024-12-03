@@ -1,7 +1,7 @@
 from typing import Union
 from pygdsdesign.polygonSet import PolygonSet
 from pygdsdesign.operation import select_polygon_per_layer
-
+import numpy as np
 
 def print_ebeam_time(polygon: PolygonSet,
                      layer: Union[int, dict],
@@ -81,3 +81,10 @@ def print_ebeam_time(polygon: PolygonSet,
     minutes = total_time//60
     hours = minutes//60
     print('    total ebeam duration: {:2.0f}h {:2.0f}min {:2.0f}s'.format(hours, minutes % 60, total_time % 60))
+
+
+
+
+def distance(x1:float,y1:float,x2:float,y2:float) -> float:
+            """Return the distance between the two point (x1;y1) and (x2;y2)"""
+            return np.sqrt((x1-x2)**2 + (y2-y1)**2)
