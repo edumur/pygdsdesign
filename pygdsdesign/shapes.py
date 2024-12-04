@@ -4,13 +4,10 @@ import warnings
 from typing import Any, Dict, Optional
 
 import numpy as np
-from sympy import Polygon
 
 from pygdsdesign.library import GdsLibrary
-from pygdsdesign.operation import boolean, merge, offset
 from pygdsdesign.polygons import Rectangle, RectangleCentered, Text
 from pygdsdesign.polygonSet import PolygonSet
-from pygdsdesign.polygons import Rectangle, Text
 from pygdsdesign.operation import boolean, offset, merge, addition, subtraction, inverse_polarity
 
 
@@ -1236,7 +1233,7 @@ def inductance(nb_l_horizontal:int=1,
     m.add_line(len_l_horizontal/2-l_microstrip_width/2)
     m.add_turn(l_microstrip_width/2,-np.pi/2)
 
-    if nb_l_horizontal%2 == 1: #the number of horizontal repition is odd, first we use loop to create nb_l_horizontal - 1 strip, and then we add the last one. 
+    if nb_l_horizontal%2 == 1: #the number of horizontal repition is odd, first we use loop to create nb_l_horizontal - 1 strip, and then we add the last one.
         for i in range(int((nb_l_horizontal-1)/2)):
            m.add_line(len_l_vertical)
            m.add_turn(l_microstrip_width/2,-np.pi/2)
