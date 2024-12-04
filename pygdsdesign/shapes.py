@@ -1,12 +1,13 @@
-import numpy as np
 import copy
 import os
-from typing import Optional, Dict, Any
 import warnings
+from typing import Any, Dict, Optional
+
+import numpy as np
 
 from pygdsdesign.library import GdsLibrary
+from pygdsdesign.polygons import Rectangle, RectangleCentered, Text
 from pygdsdesign.polygonSet import PolygonSet
-from pygdsdesign.polygons import Rectangle, Text
 from pygdsdesign.operation import boolean, offset, merge, addition, subtraction, inverse_polarity
 
 
@@ -547,7 +548,9 @@ def qubit_layer_42(layer: int=42,
         Set of polygons containing layer 42 of the qubit mask.
     """
 
-    layer42 = PolygonSet(layers=[layer], datatypes=[datatype])
+    layer42 = PolygonSet(layers=[layer],
+                         datatypes=[datatype],
+                         names=['QUBIT mask marks 42'])
 
     # list of coordinates of global marks
     LETI_global_mark_coordinates = [(-5655, 6990), (65, 6990), (5655, 6990),
@@ -697,6 +700,274 @@ def resistivity_4_probes(layer: int=0,
         return tot.center()
     else:
         return tot
+
+
+def qubit_layer_19(
+    layer: int = 19,
+    layer_annotation: int = 49,
+    datatype: int = 0,
+    datatype_annotation:int = 0
+) -> PolygonSet:
+    """
+    Generates part of the layer 19 (via active to Metal 1) of the Qubit mask LETI.
+    The device vias generated are:
+    - 4G11_1
+    - 4G11_2
+    - 4G11_3
+    - 4G21_1
+    - 4G21_2
+    - 4G22_1
+    - 4G22_2
+    - 4G23_1
+    - 4G23_2
+    - 8G11
+    - 7G11_1
+    - 7G11_2
+
+    Each device is associated with a Text (5 micron above the top left via) with the device name in layer_annoation (layer 49 by default)
+
+    Parameters
+    ----------
+    layer : int, optional
+        GDS layer, by default 19
+    layer_annotation: int, optinal
+        GDS layer, by default 49
+    datatype : int, optional
+        GDS datatype, by default 0 for both layer and layer_annotations
+
+    Returns
+    -------
+    PolygonSet
+        Set of polygons containing part of the layer 19 of the LETI qubit mask
+        + text annotation to locate devices in layer_annotation (default 49)
+    """
+
+    # dictonary with the via coordinate (center) of different devices
+
+    devices = {
+        "4G11_1": [
+            (-1835.305, 4023.675),
+            (-1834.96, 4023.695),
+            (-1834.615, 4023.675),
+            (-1835.305, 4022.745),
+            (-1834.96, 4022.725),
+            (-1834.615, 4022.745),
+            ],
+        "4G11_2": [
+            (-1835.295, 3243.605),
+            (-1834.96, 3243.625),
+            (-1834.625, 3243.605),
+            (-1835.295, 3242.745),
+            (-1834.96, 3242.725),
+            (-1834.625, 3242.745),
+            ],
+        "4G11_3": [
+            (-1835.285, 2463.535),
+            (-1834.96, 2463.555),
+            (-1834.635, 2463.535),
+            (-1835.285, 2462.745),
+            (-1834.96, 2462.725),
+            (-1834.635, 2462.745),
+            ],
+        "5G12_1":[
+            (-1575.28500, 3962.61500),
+            (-1574.96000, 3962.63500),
+            (-1574.63500, 3962.61500),
+            (-1575.28500, 3961.74500),
+            (-1574.96000, 3961.72500),
+            (-1574.63500, 3961.74500),
+            (-1574.30500, 3961.74500),
+            ],
+        "5G12_2":[
+            (-1575.28500, 3052.61500),
+            (-1574.96000, 3052.63500),
+            (-1574.63500, 3052.61500),
+            (-1575.28500, 3051.74500),
+            (-1574.96000, 3051.72500),
+            (-1574.63500, 3051.74500),
+            (-1574.30500, 3051.74500)
+            ],
+        "6G11_2":[
+            (-1445.61500, 2854.69500),
+            (-1445.28500, 2854.69500),
+            (-1444.96000, 2854.71500),
+            (-1444.63500, 2854.69500),
+            (-1445.28500, 2853.74500),
+            (-1444.96000, 2853.72500),
+            (-1444.63500, 2853.74500),
+            (-1444.30500, 2853.74500)
+            ],
+        "7G11_1": [
+            (-1315.625, 3830.905),
+            (-1315.295, 3830.905),
+            (-1314.96, 3830.925),
+            (-1314.625, 3830.905),
+            (-1315.625, 3829.745),
+            (-1315.295, 3829.745),
+            (-1314.96, 3829.725),
+            (-1314.625, 3829.745),
+            (-1314.295, 3829.745),
+            ],
+        "7G11_2": [
+            (-1315.615, 2660.775),
+            (-1315.285, 2660.775),
+            (-1314.96, 2660.795),
+            (-1314.635, 2660.775),
+            (-1315.615, 2659.745),
+            (-1315.285, 2659.745),
+            (-1314.96, 2659.725),
+            (-1314.635, 2659.745),
+            (-1314.305, 2659.745),
+            ],
+        "8G11": [
+            (-1185.615, 3764.855),
+            (-1185.615, 3764.855),
+            (-1185.285, 3764.855),
+            (-1184.96, 3764.875),
+            (-1184.635, 3764.855),
+            (-1184.305, 3764.855),
+            (-1185.615, 3763.745),
+            (-1185.285, 3763.745),
+            (-1184.96, 3763.725),
+            (-1184.635, 3763.745),
+            (-1184.305, 3763.745),
+            ],
+        "4G21_1": [
+            (2194.695, 6903.675),
+            (2195.05, 6903.695),
+            (2195.405, 6903.675),
+            (2194.695, 6902.745),
+            (2195.05, 6902.725),
+            (2195.405, 6902.745),
+            ],
+        "4G21_2": [
+            (2194.695, 5863.675),
+            (2195.04, 5863.695),
+            (2195.385, 5863.675),
+            (2194.695, 5862.745),
+            (2195.04, 5862.725),
+            (2195.385, 5862.745),
+            ],
+        "4G22_1": [
+            (2324.705, 6903.605),
+            (2325.05, 6903.625),
+            (2325.395, 6903.605),
+            (2324.705, 6902.745),
+            (2325.05, 6902.725),
+            (2325.395, 6902.745),
+            ],
+        "4G22_2": [
+            (2324.705, 5863.605),
+            (2325.04, 5863.625),
+            (2325.375, 5863.605),
+            (2324.705, 5862.745),
+            (2325.04, 5862.725),
+            (2325.375, 5862.745),
+            ],
+        "4G23_1": [
+            (2454.715, 6903.535),
+            (2455.05, 6903.555),
+            (2455.385, 6903.535),
+            (2454.715, 6902.745),
+            (2455.05, 6902.725),
+            (2455.385, 6902.745),
+            ],
+        "4G23_2": [
+            (2454.715, 5863.535),
+            (2455.04, 5863.555),
+            (2455.365, 5863.535),
+            (2454.715, 5862.745),
+            (2455.04, 5862.725),
+            (2455.365, 5862.745),
+            ],
+        "5G23_1":[
+            (2844.61500, 6850.61500),
+            (2844.95000, 6850.63500),
+            (2845.28500, 6850.61500),
+            (2844.28500, 6849.74500),
+            (2844.61500, 6849.74500),
+            (2844.95000, 6849.72500),
+            (2845.28500, 6849.74500)
+            ],
+        "5G23_2":[
+            (2844.63500, 5680.61500),
+            (2844.96000, 5680.63500),
+            (2845.28500, 5680.61500),
+            (2844.30500, 5679.74500),
+            (2844.63500, 5679.74500),
+            (2844.96000, 5679.72500),
+            (2845.28500, 5679.74500)
+            ],
+        "6G22_1":[
+            (3104.36500, 6784.69500),
+            (3104.70000, 6784.71500),
+            (3105.03500, 6784.69500),
+            (3105.36500, 6784.69500),
+            (3104.03500, 6783.74500),
+            (3104.36500, 6783.74500),
+            (3104.70000, 6783.72500),
+            (3105.03500, 6783.74500)
+            ],
+        "6G22_2":[
+            (3104.38500, 5484.69500),
+            (3104.71000, 5484.71500),
+            (3105.03500, 5484.69500),
+            (3105.36500, 5484.69500),
+            (3104.05500, 5483.74500),
+            (3104.38500, 5483.74500),
+            (3104.71000, 5483.72500),
+            (3105.03500, 5483.74500)
+            ],
+        "7G22_1":[
+            (3366.38500, 6719.25500),
+            (3366.71500, 6719.25500),
+            (3367.04000, 6719.27500),
+            (3367.36500, 6719.25500),
+            (3367.69500, 6719.25500),
+            (3366.38500, 6718.22500),
+            (3366.71500, 6718.22500),
+            (3367.04000, 6718.20500),
+            (3367.36500, 6718.22500)
+            ],
+        "8G22_1":[
+            (3621.38500, 6723.85500),
+            (3621.71500, 6723.85500),
+            (3622.04000, 6723.87500),
+            (3622.36500, 6723.85500),
+            (3622.69500, 6723.85500),
+            (3621.38500, 6722.74500),
+            (3621.71500, 6722.74500),
+            (3622.04000, 6722.72500),
+            (3622.36500, 6722.74500),
+            (3622.69500, 6722.74500)
+            ],
+    }
+
+    annotations = PolygonSet(names=['QUBIT device names'])
+    vias = PolygonSet(names=['QUBIT contacts 19'])
+
+    for device in devices.keys():
+        coordinates = devices[device]
+        annotations += Text(
+            device,
+            20,
+            position=(coordinates[0][0], coordinates[0][1] + 0.5),
+            layer=layer_annotation,
+            datatype=datatype_annotation,
+            name='QUBIT device names'
+        )
+        for via_coordinates in coordinates:
+            vias += RectangleCentered(
+                (via_coordinates[0], via_coordinates[1]),
+                0.09,
+                0.09,
+                layer=layer,
+                datatype=datatype,
+                name = 'QUBIT contacts 19'
+            )
+
+    total = vias + annotations
+    return total
 
 
 def dicing_saw_mark(substrate: str='si',
@@ -962,7 +1233,7 @@ def inductance(nb_l_horizontal:int=1,
     m.add_line(len_l_horizontal/2-l_microstrip_width/2)
     m.add_turn(l_microstrip_width/2,-np.pi/2)
 
-    if nb_l_horizontal%2 == 1: #the number of horizontal repition is odd, first we use loop to create nb_l_horizontal - 1 strip, and then we add the last one. 
+    if nb_l_horizontal%2 == 1: #the number of horizontal repition is odd, first we use loop to create nb_l_horizontal - 1 strip, and then we add the last one.
         for i in range(int((nb_l_horizontal-1)/2)):
            m.add_line(len_l_vertical)
            m.add_turn(l_microstrip_width/2,-np.pi/2)

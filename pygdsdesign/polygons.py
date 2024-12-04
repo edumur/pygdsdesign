@@ -5,6 +5,8 @@ import warnings
 
 from pygdsdesign.typing_local import Coordinate
 
+
+
 class Rectangle(PolygonSet):
 
     def __init__(self, point1: Coordinate,
@@ -42,6 +44,48 @@ class Rectangle(PolygonSet):
         ).format(
             self.polygons[0][0], self.polygons[0][2], self.layers[0], self.datatypes[0], self.names[0], self.colors[0]
         )
+
+
+
+class RectangleCentered(Rectangle):
+    def __init__(
+        self,
+        center: Coordinate,
+        dx: float,
+        dy: float,
+        layer: int = 0,
+        datatype: int = 0,
+        name: str = "",
+        color: str = "",
+    ) -> None:
+        """
+        Return a polygon with a rectangular shape of size dx, dy centered at the given coordinate
+
+        Parameters
+        ----------
+        center : coordinate
+            of the center of the rectangle
+        dx : float
+            size in the x direction
+        dy : float
+            size in the y direction
+        layer: int, optinal
+            GDS layer, by default 0
+        datatype : int, optional
+            GDS datatype, by default 0
+        name : str, by default ''
+        color : str, by default ''
+
+        Returns
+        -------
+        Polygon
+
+        """
+
+        point1 = (center[0] - dx / 2, center[1] - dy / 2)
+        point2 = (center[0] + dx / 2, center[1] + dy / 2)
+
+        super().__init__(point1, point2, layer, datatype, name, color)
 
 
 
@@ -180,6 +224,7 @@ class Round(PolygonSet):
             list(set(self.names)),
             list(set(self.colors)),
         )
+
 
 
 class Text(PolygonSet):
@@ -378,5 +423,3 @@ class Text(PolygonSet):
             list(set(self.names)),
             list(set(self.colors)),
         )
-
-
