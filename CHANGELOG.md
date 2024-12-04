@@ -1,3 +1,8 @@
+pygdsdesign-0.17.2
+
+  New Features:
+    - Add `RectangleCentered` polygon and `qubit_layer_19` shape
+
 pygdsdesign-0.17.1
 
   Bug Fixes:
