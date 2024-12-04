@@ -182,7 +182,7 @@ def global_marks_ebeam(w: float=10,
 
         # Create a default triangle with the proper orientation
         t = PolygonSet([[(0, 0), (directional_structures_length, 0), (directional_structures_length/2, 2*directional_structures_length)]])
-        t.rotate(np.pi/2, t.center())
+        t.rotate(np.pi/2, t.get_center())
 
         # Add many triangles with the proper rotation in 10 concentrics circles
         for r, s in zip(np.linspace(directional_offset, l*0.75, 10),
@@ -213,7 +213,7 @@ def global_marks_ebeam(w: float=10,
         temp4 = PolygonSet()
         for p in temp3.polygons:
             t=PolygonSet([p], layers=[layer], datatypes=[datatype], colors=[color], names=[name])
-            if t.area()>0.9*directional_structures_length*directional_structures_length:
+            if t.get_area()>0.9*directional_structures_length*directional_structures_length:
                 temp4 += t
         tot += temp4
 

@@ -453,44 +453,53 @@ def grid_cover(polygons: PolygonSet,
                square_gap: float=12,
                safety_margin: float=10,
                centered: bool=False,
+               noise: float=0,
+               only_square: bool=True,
                layer: int=1,
                datatype: int=0,
                name: str='',
                color: str ='') ->  PolygonSet:
     """
-    Create a grid pattern of squares which follows any shape given in polygons
-    after shrinking it by a safety margin.
-    The square size and gap between them are given as free parameters.
+        Create a grid pattern of squares which follows any shape given in polygons
+        after shrinking it by a safety margin.
+        The square size and gap between them are given as free parameters.
 
-    Args:
-        polygons: shape from which the grid pattern is built upon.
-        square_width: Width of the square in um.
-            Defaults to 10um.
-        square_gap: Space between the square in um.
-            Defaults to 12um.
-        safety_margin: shrinking scaling distance taken from the polygon in um.
-            Defaults to 10um.
-        centered: if False, the grid bottom left corresponds to the polygons
-            bottom left.
-            If True, the grid center corresponds to the polygon center.
-
-            Defaults to False.
-        layer: gds layer of the grid cover.
-            Defaults to 1.
-        datatype: gds datatype of the grid cover.
-            Defaults to 1.
-        name: gds name of the grid cover.
-            Defaults to ''.
-        color: gds color of the grid cover.
-            Defaults to ''.
+        Args:
+            polygons: shape from which the grid pattern is built upon.
+            square_width: Width of the square in um.
+                Defaults to 10um.
+            square_gap: Space between the square in um.
+                Defaults to 12um.
+            safety_margin: shrinking scaling distance taken from the polygon in um.
+                Defaults to 10um.
+            centered: if False, the grid bottom left corresponds to the polygons
+                bottom left.
+                If True, the grid center corresponds to the polygon center.
+                Defaults to False.
+            noise: Noise parameter in um to generate random square positions.
+                Each square is translated by a random amount given by the noise
+                parameter. A noise value uf 4 um will give a random shift
+                from -4 um to +4 um in x and y.
+                Defaults to 0, resulting in a regular grid.
+            only_square: Remove all polygons that are not stricly
+                `square_width` x `square_width` shape.
+                Defaults to True.
+            layer: gds layer of the grid cover.
+                Defaults to 1.
+            datatype: gds datatype of the grid cover.
+                Defaults to 1.
+            name: gds name of the grid cover.
+                Defaults to ''.
+            color: gds color of the grid cover.
+                Defaults to ''.
     """
     poly = offset(polygons=polygons,
-                      distance=-safety_margin,
-                      join_first=True,
-                      layer=layer,
-                      datatype=datatype,
-                      name=name,
-                      color=color)
+                  distance=-safety_margin,
+                  join_first=True,
+                  layer=layer,
+                  datatype=datatype,
+                  name=name,
+                  color=color)
 
     if poly is not None:
 
@@ -530,33 +539,47 @@ def grid_cover(polygons: PolygonSet,
                 temp = np.concatenate((temp, temp+np.array([0, temp[:,1].max()-temp[:,1].min()+square_gap])))
                 xi = xi*2
 
+            # If user wants to add some noise to the square positions
+            if noise!=0:
+                t = 2*noise * np.random.random((int(temp.shape[0]/4), 2)) - noise
+                temp += np.repeat(t, 4, axis=0)
+
+            # If use wants to center the whole grid
             if centered:
                 temp += np.array([-(temp[:,0].max()+temp[:,0].min())/2, -(temp[:,1].max()+temp[:,1].min())/2])
                 temp += np.array([(p[:,0].max()+p[:,0].min())/2, (p[:,1].max()+p[:,1].min())/2])
             else:
                 temp += np.array([p[:,0].min(), p[:,1].min()])
 
+
+            # Boolean operation
             polys = clipper.clip(np.split(temp, int(len(temp[:,0])/4)),
                         [p],
                         'and',
                         1000)
 
-            # Boolean operation
-            r = PolygonSet(polys,
-                      layers=[layer]*len(polys),
-                      datatypes=[datatype]*len(polys),
-                      names=[name]*len(polys),
-                      colors=[color]*len(polys))
-
-            if r is not None:
-                resultPoly += r
+            # if we still have some square left
+            if len(polys) >0:
+                resultPoly += PolygonSet(polys)
     else:
         resultPoly = PolygonSet()
 
+    # If user wants to keep only entire squares
+    if only_square:
+        temp = []
+        for p in resultPoly.polygons:
+            # We keep only quadrilateral
+            if p.shape[0]==4 and p.shape[1]==2:
+                # We keep only square
+                if (    abs(p[1,0]-p[0,0])==square_width
+                    and abs(p[3,1]-p[0,1])==square_width):
+                    temp.append(p)
+        resultPoly = PolygonSet(temp)
+
     return resultPoly.change_layer(layer=layer,
-                             datatype=datatype,
-                             name=name,
-                             color=color)
+                                   datatype=datatype,
+                                   name=name,
+                                   color=color)
 
 
 def inverse_polarity(polygons: PolygonSet,
@@ -709,6 +732,41 @@ def select_polygon_per_layer(polygons: PolygonSet,
     tot.datatypes = list(ds[mask])
     tot.colors    = list(np.array(polygons.colors)[mask])
     tot.names     = list(np.array(polygons.names)[mask])
+
+    if merging:
+        return merge(tot)
+    else:
+        return tot
+
+
+def select_polygon_per_name(polygons: PolygonSet,
+                            name: int,
+                            merging: bool=False) -> PolygonSet:
+    """
+    Return a copy of the polygon(s) corresponding to the given name
+    This method does not change the original Polygon or PolygonSet.
+
+    Args:
+        layer : Layer number.
+        datatype: gds datatype of the grid cover.
+            Defaults to 0.
+        merging : If merging is True, merge before returning.
+            Defaults to False.
+    """
+
+    # We create a numpy mask of the single layer we want to keep
+    ns = np.array(polygons.names)
+    mask = ns==name
+
+    # We create an empty Polygon
+    tot = PolygonSet()
+
+    # We fill that polygon with the mask
+    tot.polygons  = list(np.array(polygons.polygons, dtype=object)[mask])
+    tot.layers    = list(np.array(polygons.layers)[mask])
+    tot.datatypes = list(np.array(polygons.datatypes)[mask])
+    tot.colors    = list(np.array(polygons.colors)[mask])
+    tot.names     = list(ns)
 
     if merging:
         return merge(tot)

@@ -2864,7 +2864,7 @@ class GdsLibrary(object):
         return self
 
     def _create_polygon(self, layer, datatype, xy):
-        return PolygonSet([xy[:-2].reshape((xy.size // 2 - 1, 2))], layer, datatype)
+        return PolygonSet([xy[:-2].reshape((xy.size // 2 - 1, 2))], [layer], [datatype])
 
     def _create_path(self, **kwargs):
         xy = kwargs.pop("xy")
