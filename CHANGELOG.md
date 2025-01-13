@@ -1,3 +1,8 @@
+pygdsdesign-0.17.3
+
+  Bug fixes:
+    - Fix `add_turn` total_length computation
+
 pygdsdesign-0.17.2
 
   New Features:

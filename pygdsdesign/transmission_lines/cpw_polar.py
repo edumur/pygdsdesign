@@ -205,7 +205,7 @@ class CPWPolar(TransmissionLine):
                     y0+(y[nb_points]+y[nb_points-1])/2]
         self._add(p)
         self._bounding_polygon+=bp
-        self.total_length += radius*delta_angle
+        self.total_length += abs(radius*delta_angle)
 
         return self
 
@@ -419,7 +419,7 @@ class CPWPolar(TransmissionLine):
 
         if update_ref:
             self.ref = [self.ref[0]+width*np.cos(self._angle), self.ref[1]+width*np.sin(self._angle)]
-            
+
         return self
 
 
