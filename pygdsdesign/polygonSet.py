@@ -1,5 +1,4 @@
-from typing import List, Literal, Optional, Dict, Tuple
-from typing_extensions import Self
+from typing import List, Literal, Optional, Dict, Tuple, Self
 import numpy as np
 import struct
 import warnings
@@ -224,7 +223,6 @@ class PolygonSet():
         sa = np.sin(angle) * _mpone
         c0 = np.array(center)
         new_polys = []
-         # Tester avec  self.polygons = [((points - c0) * ca + (points - c0)[:, ::-1] * sa + c0) for points in self.polygons]
 
         for points in self.polygons:
             pts = points - c0

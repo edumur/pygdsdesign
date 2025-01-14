@@ -2,6 +2,8 @@ pygdsdesign-0.17.3
 
   Bug fixes:
     - Fix `add_turn` total_length computation
+    - Fix `rotate` for transmission line
+      self.ref takes now the rotation into account
 
 pygdsdesign-0.17.2
 
