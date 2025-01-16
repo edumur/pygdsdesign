@@ -4,6 +4,7 @@ pygdsdesign-0.17.3
     - Fix `add_turn` total_length computation
     - Fix `rotate` for transmission line
       self.ref takes now the rotation into account
+    - Propagate `self.ref` for MicrostripPolar
 
 pygdsdesign-0.17.2
 
