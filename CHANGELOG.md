@@ -5,6 +5,8 @@ pygdsdesign-0.17.3
     - Fix `rotate` for transmission line
       self.ref takes now the rotation into account
     - Propagate `self.ref` for MicrostripPolar
+    - Fix `translate` for transmission line
+      if `_bounding_polygon` exist, propagate the translation to it
 
 pygdsdesign-0.17.2
 

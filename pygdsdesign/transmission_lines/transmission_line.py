@@ -196,6 +196,10 @@ class TransmissionLine(PolygonSet):
             self._param_curve[:,0] += dx
             self._param_curve[:,1] += dy
 
+        if hasattr(self, '_bounding_polygon'):
+            vec = np.array((dx, dy))
+            self._bounding_polygon.polygons = [points + vec for points in self._bounding_polygon.polygons]
+
         return super().translate(dx, dy)
 
 
