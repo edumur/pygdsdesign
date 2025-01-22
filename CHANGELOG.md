@@ -1,5 +1,8 @@
 pygdsdesign-0.17.3
 
+  New Features:
+    - Add `hexagonal_grid` input parameter to `grid_cover` operation
+
   Bug fixes:
     - Fix `add_turn` total_length computation
     - Fix `rotate` for transmission line
