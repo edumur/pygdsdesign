@@ -2320,25 +2320,29 @@ class GdsLibrary(object):
             for p in val.polygons:
                 for layer, datatype, name, color in zip(p.layers, p.datatypes, p.names, p.colors):
                     if len(properties)==0:
-                        if datatype!=0:
-                            name+='-{}'.format(datatype)
-                        if color=='' and layer!=0:
+                        if (color=='' and layer!=0) or (color=='' and datatype!=0):
                             color = colors['others'][color_index//len(colors['others'])]
                             color_index+=1
                         properties.append({'layer' : layer,
-                                        'datatype' : datatype,
-                                        'name' : name,
-                                        'color' : color})
-                    elif layer not in (i['layer'] for i in properties) or  datatype not in (i['datatype'] for i in properties):
-                        if datatype!=0:
-                            name+='-{}'.format(datatype)
-                        if color=='' and layer!=0:
-                            color = colors['others'][color_index//len(colors['others'])]
-                            color_index+=1
-                        properties.append({'layer' : layer,
-                                        'datatype' : datatype,
-                                        'name' : name,
-                                        'color' : color})
+                                           'datatype' : datatype,
+                                           'name' : name,
+                                           'color' : color})
+                    else:
+                        # Another property is added only if the coupler (layer+datatype)
+                        # does not already exist
+                        condition1=1
+                        for i in properties:
+                            if str(layer)+str(datatype)==str(i['layer'])+str(i['datatype']):
+                                condition1=0
+                                continue
+                        if condition1:
+                            if color=='' and layer!=0:
+                                color = colors['others'][color_index//len(colors['others'])]
+                                color_index+=1
+                            properties.append({'layer' : layer,
+                                            'datatype' : datatype,
+                                            'name' : name,
+                                            'color' : color})
 
         # Save the layers properties in an xml file
         with open('{}.lyp'.format(filename[:-4]),'w+') as f:

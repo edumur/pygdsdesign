@@ -10,6 +10,7 @@ pygdsdesign-0.17.3
     - Propagate `self.ref` for MicrostripPolar
     - Fix `translate` for transmission line
       if `_bounding_polygon` exist, propagate the translation to it
+    - Fix `export_gds` when the same layer may have different datatype
 
 pygdsdesign-0.17.2
 
