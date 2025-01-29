@@ -7,6 +7,7 @@ def print_ebeam_time(polygon: PolygonSet,
                      layer: Union[int, dict],
                      beam_current: float,
                      resist_dose: float,
+                     datatype: int=0,
                      eos: int=3,
                      stage_displacement_time: float=0.05) -> None:
     """
@@ -23,6 +24,10 @@ def print_ebeam_time(polygon: PolygonSet,
             if dict if a key 'layer': layer we want the ebeam exposure time from
         beam_current: beam current in nA.
         resist_dose: resis dose in uC/cm2
+        datatype: layer datatype.
+            if argument `layer` is a dict, this argument `datatype` is ignored.
+            if argument `layer` is an int, this argument `datatype` is used.
+            default, 0.
         eos: EOS mode of the ebeam job.
             Must be either 3 or 6.
             An eos mode 3 imply a stage field of 500x500 um2.
@@ -37,14 +42,22 @@ def print_ebeam_time(polygon: PolygonSet,
             else:
                 raise ValueError('The key "layer" of the layer argument must be an int')
         else:
-            raise ValueError('Layer argument must a dict containing a key "layer"')
+            raise ValueError('Layer argument must be a dict containing a key "layer"')
+        if 'datatype' in layer.keys():
+            if isinstance(layer['datatype'], int):
+                d = layer['datatype']
+            else:
+                raise ValueError('The key "datatype" of the layer argument must be an int')
+        else:
+            raise ValueError('Layer argument must be a dict containing a key "datatype"')
     elif isinstance(layer, int):
         l = layer
+        d = datatype
     else:
         raise ValueError('Layer argument must be an int')
 
     # get layer area in um2
-    area = select_polygon_per_layer(polygon, l).get_area()
+    area = select_polygon_per_layer(polygon, layer=l, datatype=d).get_area()
 
     # exposure time in s
     exposure_time = area/1e8*resist_dose*1e3/beam_current

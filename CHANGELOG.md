@@ -1,3 +1,9 @@
+pygdsdesign-0.17.4
+
+  Bug fixes:
+    - Fix `print_ebeam_time` when the requested datatype is not "0"
+    - Fix `grid_cover` when the only_square was used with only one square
+
 pygdsdesign-0.17.3
 
   New Features:

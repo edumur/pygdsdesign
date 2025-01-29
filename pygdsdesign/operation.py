@@ -641,14 +641,21 @@ def grid_cover(polygons: PolygonSet,
 
     # If user wants to keep only entire squares
     if only_square:
-        temp = []
-        for p in resultPoly.polygons:
-            # We keep only quadrilateral
-            if p.shape[0]==split_nb and p.shape[1]==2:
-                if np.isclose(np.sum(np.hypot( *(p - np.roll(p, -1, axis=0)).T )), split_nb*square_width, atol=1e-2):
-                    temp.append(p)
 
-        resultPoly = PolygonSet(temp)
+        # Only check non empty PolygonSet
+        if np.all(resultPoly.polygons[0]!=np.array([[0., 0.]])):
+            temp = []
+            for p in resultPoly.polygons:
+                # We keep only quadrilateral
+                if p.shape[0]==split_nb and p.shape[1]==2:
+                    if np.isclose(np.sum(np.hypot( *(p - np.roll(p, -1, axis=0)).T )), split_nb*square_width, atol=1e-2):
+                        temp.append(p)
+
+            # if we still have some square left
+            if len(temp)>0:
+                resultPoly = PolygonSet(temp)
+            else:
+                resultPoly = PolygonSet()
 
     return resultPoly.change_layer(layer=layer,
                                    datatype=datatype,
