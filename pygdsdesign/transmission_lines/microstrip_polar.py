@@ -16,7 +16,8 @@ class MicroStripPolar(TransmissionLine):
                        layer: int=0,
                        datatype: int=0,
                        name: str='',
-                       color: str='')-> None:
+                       color: str='',
+                       ref: Optional[Coordinate] = None,)-> None:
         """
         Microstrip allows to easily draw a continuous microstrip line.
 
@@ -43,7 +44,8 @@ class MicroStripPolar(TransmissionLine):
         TransmissionLine.__init__(self, layer=layer,
                                         datatype=datatype,
                                         name=name,
-                                        color=color)
+                                        color=color,
+                                        ref=ref)
 
         self._w = width
         self._angle=angle

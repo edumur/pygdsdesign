@@ -1,3 +1,28 @@
+pygdsdesign-0.17.4
+
+  Bug fixes:
+    - Fix `print_ebeam_time` when the requested datatype is not "0"
+    - Fix `grid_cover` when the only_square was used with only one square
+
+pygdsdesign-0.17.3
+
+  New Features:
+    - Add `hexagonal_grid` input parameter to `grid_cover` operation
+
+  Bug fixes:
+    - Fix `add_turn` total_length computation
+    - Fix `rotate` for transmission line
+      self.ref takes now the rotation into account
+    - Propagate `self.ref` for MicrostripPolar
+    - Fix `translate` for transmission line
+      if `_bounding_polygon` exist, propagate the translation to it
+    - Fix `export_gds` when the same layer may have different datatype
+
+pygdsdesign-0.17.2
+
+  New Features:
+    - Add `RectangleCentered` polygon and `qubit_layer_19` shape
+
 pygdsdesign-0.17.1
 
   Bug Fixes:

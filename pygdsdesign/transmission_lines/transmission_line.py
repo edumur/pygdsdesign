@@ -1,12 +1,13 @@
 from functools import lru_cache, partial
 import numpy as np
-from typing import Optional, Union, Tuple
+from typing import Optional, Union, Tuple, Self
 from scipy.special import fresnel
 from typing import Literal, Dict, Callable
 from scipy.interpolate import InterpolatedUnivariateSpline
 from scipy.integrate import quad
 from scipy.special import fresnel
 from scipy.optimize import fsolve
+_mpone = np.array((-1.0, 1.0))
 
 
 from pygdsdesign.polygonSet import PolygonSet
@@ -195,7 +196,44 @@ class TransmissionLine(PolygonSet):
             self._param_curve[:,0] += dx
             self._param_curve[:,1] += dy
 
+        if hasattr(self, '_bounding_polygon'):
+            vec = np.array((dx, dy))
+            self._bounding_polygon.polygons = [points + vec for points in self._bounding_polygon.polygons]
+
         return super().translate(dx, dy)
+
+
+    def rotate(self, angle: float,
+                     center: Coordinate=(0, 0)) -> Self:
+        """
+        Rotate this object.
+
+        Args:
+        angle : number
+            The angle of rotation (in *radians*).
+        center : array-like[2]
+            Center point for the rotation.
+
+        Returns:
+            PolygonSet: the rotated transmission line
+        """
+        ca = np.cos(angle)
+        sa = np.sin(angle) * _mpone
+        c0 = np.array(center)
+        new_polys = []
+
+        for points in self.polygons:
+            pts = points - c0
+            new_polys.append(pts * ca + pts[:, ::-1] * sa + c0)
+        self.polygons = new_polys
+
+        x = np.copy(self.ref[0])-center[0]
+        y = np.copy(self.ref[1])-center[1]
+
+        self.ref[0] = np.cos(angle)*x - np.sin(angle)*y + center[0]
+        self.ref[1] = np.cos(angle)*y + np.sin(angle)*x + center[1]
+
+        return self
 
 
     ###########################################################################

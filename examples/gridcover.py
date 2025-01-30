@@ -10,6 +10,8 @@ from pygdsdesign.operation import (
     subtraction,
 )
 
+from copy import deepcopy
+
 # define layer
 layer_background = {
     "layer": 1,
@@ -45,23 +47,38 @@ r = offset(
 )
 
 # make the negative of the group logo
-r = subtraction(r, poly, **layer_background)
+r1 = subtraction(r, poly, **layer_background)
+r2 = deepcopy(r1).translate(500, 500)
 
 # Use that negative for the grid cover operation
-grid = grid_cover(
-    polygons=r,
+grid1 = grid_cover(
+    polygons=r1,
     square_width=12,
     square_gap=23,
     safety_margin=10,
     centered=True,
     noise=12,
-    only_square=False,
+    only_square=True,
+    **layer_grid
+)
+
+
+# Same with hexagon
+grid2 = grid_cover(
+    polygons=r2,
+    square_width=10,
+    square_gap=10,
+    safety_margin=10,
+    centered=True,
+    hexagonal_grid=True,
+    noise=3,
+    only_square=True,
     **layer_grid
 )
 
 
 
-tot += r + grid
+tot += r1 + r2 + grid1 + grid2
 
 # Add polygons to cell
 cell.add(tot)

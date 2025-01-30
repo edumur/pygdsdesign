@@ -455,6 +455,7 @@ def grid_cover(polygons: PolygonSet,
                centered: bool=False,
                noise: float=0,
                only_square: bool=True,
+               hexagonal_grid: bool=False,
                layer: int=1,
                datatype: int=0,
                name: str='',
@@ -463,6 +464,8 @@ def grid_cover(polygons: PolygonSet,
         Create a grid pattern of squares which follows any shape given in polygons
         after shrinking it by a safety margin.
         The square size and gap between them are given as free parameters.
+
+        If hexagonal_grid is True, use hexagon instead. see hexagonal_grid below.
 
         Args:
             polygons: shape from which the grid pattern is built upon.
@@ -484,6 +487,12 @@ def grid_cover(polygons: PolygonSet,
             only_square: Remove all polygons that are not stricly
                 `square_width` x `square_width` shape.
                 Defaults to True.
+            hexagonal_grid: Replace the square grid of square by an hexagonal grid
+                of hexagon. In this context:
+                    `square_width` becomes the hexagon side length
+                    `square_gap` becomes the gap between hexagon in all direction
+                    `only_square` means only hexagon
+                Defaults to False.
             layer: gds layer of the grid cover.
                 Defaults to 1.
             datatype: gds datatype of the grid cover.
@@ -493,7 +502,7 @@ def grid_cover(polygons: PolygonSet,
             color: gds color of the grid cover.
                 Defaults to ''.
     """
-    poly = offset(polygons=polygons,
+    poly = offset(polygons=merge(polygons),
                   distance=-safety_margin,
                   join_first=True,
                   layer=layer,
@@ -510,39 +519,105 @@ def grid_cover(polygons: PolygonSet,
         resultPoly = PolygonSet()
 
         for p in poly.polygons:
-                        # skip empty polygon
+
+            # skip empty polygon
             if (p==[[0,0]]).all():
                 continue
 
-            # create holed framed
+            # Get the number of square in both direction to cover the polygon
             dx = np.ptp(p[:, 0])
             dy = np.ptp(p[:, 1])
 
-            # TODO check if it's not needed to add 1 here
-            nb_square_x = ceil(dx/(square_width+square_gap))
-            nb_square_y = ceil(dy/(square_width+square_gap))
 
-            temp = np.array([(0, 0),
-                             (0, square_width),
-                             (square_width, square_width),
-                             (square_width, 0)], dtype=np.float64)
 
-            xi = 1
+            # Make an array that contain all coordinate of all squares at once
+            # [(x0, y0),
+            #  (x1, y1),
+            #  (x2, y2),  that's the first square
+            #  (x3, y3),
+            #  .
+            #  .
+            #  .
+            #  (xn-3, yn-3),
+            #  (xn-2, yn-2), that's the n square where: n = nb_square_x * nb_square_y
+            #  (xn-1, yn-1),
+            #  (xn, yn)]
+            #
+            # To do so we:
+            #   1. create an array of the square coordinate
+            #   2. tile it to the number of need square
+            #   3. add the square array to the translation coordinate
 
-            while xi<nb_square_x+1:
-                temp = np.concatenate((temp, temp+np.array([temp[:,0].max()-temp[:,0].min()+square_gap, 0])))
-                xi = xi*2
 
-            xi = 1
 
-            while xi<nb_square_y+1:
-                temp = np.concatenate((temp, temp+np.array([0, temp[:,1].max()-temp[:,1].min()+square_gap])))
-                xi = xi*2
+            # At that point, we pave the plan with the temp polygon array
+            #   1. By default, the paving is a square paving
+            #   2. If hexagonal_grid=True, we use a hexagon paving
+            #      In this case `square_gap` is used as the hexagon side
+            if hexagonal_grid:
+
+                nb_square_x = ceil(dx/(square_width+square_gap)/2)
+                # * 2 because the hex grid has two sub grid
+                nb_square_y = ceil(dy/(square_width+square_gap)/2*2)
+
+                # some trigo shortcut
+                a = 0.5
+                b = 0.8660254037844386
+
+                # We keep track of the number of coordinate for the square
+                split_nb = 6
+
+                temp = np.tile(np.array([(0,                           0),
+                                         (square_width,                0),
+                                         (square_width+square_width*a, square_width*b),
+                                         (square_width,                square_width*b*2),
+                                         (0,                           square_width*b*2),
+                                         (-square_width*a,             square_width*b)]
+                                       , dtype=np.float64),
+                                (nb_square_x*nb_square_y,1))
+
+                # create the coordinates where the above hexagon should be repeated
+                dx = np.tile(np.repeat(np.vstack(np.arange(0, nb_square_x, 1, dtype=np.float64)), split_nb, 0), (nb_square_y, 1))
+                dy = np.repeat(np.repeat(np.vstack(np.arange(0, nb_square_y, 1, dtype=np.float64)), split_nb, 0), nb_square_x, 0)
+
+                # Move the hex to the 1st subgrid
+                dx *= (square_width+2*a*square_width+2*b*square_gap+square_width)
+                dy *= (square_width*b*2+square_gap)
+                temp2 = temp + np.hstack((dx, dy))
+
+                # Move the hex to the second subgrid
+                temp3 = temp + np.hstack((dx+square_width+b*square_gap+a*square_width,
+                                dy-np.sqrt(3)/2*square_width -a*square_gap))
+
+                # Make the total grid
+                temp = np.concatenate((temp2, temp3))
+
+            else:
+
+                            # We keep track of the number of coordinate for the hexagon
+                split_nb = 4
+
+                nb_square_x = ceil(dx/(square_width+square_gap))
+                nb_square_y = ceil(dy/(square_width+square_gap))
+
+                temp = np.tile(np.array([(0,            0),
+                                         (0,            square_width),
+                                         (square_width, square_width),
+                                         (square_width, 0)],
+                                       dtype=np.float64)
+                              , (nb_square_x*nb_square_y,1))
+
+                # create the coordinates where the above square should be repeated
+                dx = np.tile(np.repeat(np.vstack(np.arange(0, nb_square_x, 1, dtype=np.float64)), split_nb, 0), (nb_square_y, 1))
+                dy = np.repeat(np.repeat(np.vstack(np.arange(0, nb_square_y, 1, dtype=np.float64)), split_nb, 0), nb_square_x, 0)
+
+                temp += np.hstack((dx, dy))*(square_width+square_gap)
+
 
             # If user wants to add some noise to the square positions
             if noise!=0:
-                t = 2*noise * np.random.random((int(temp.shape[0]/4), 2)) - noise
-                temp += np.repeat(t, 4, axis=0)
+                t = 2*noise * np.random.random((int(temp.shape[0]/split_nb), 2)) - noise
+                temp += np.repeat(t, split_nb, axis=0)
 
             # If use wants to center the whole grid
             if centered:
@@ -553,7 +628,7 @@ def grid_cover(polygons: PolygonSet,
 
 
             # Boolean operation
-            polys = clipper.clip(np.split(temp, int(len(temp[:,0])/4)),
+            polys = clipper.clip(np.split(temp, int(len(temp[:,0])/split_nb)),
                         [p],
                         'and',
                         1000)
@@ -566,15 +641,21 @@ def grid_cover(polygons: PolygonSet,
 
     # If user wants to keep only entire squares
     if only_square:
-        temp = []
-        for p in resultPoly.polygons:
-            # We keep only quadrilateral
-            if p.shape[0]==4 and p.shape[1]==2:
-                # We keep only square
-                if (    abs(p[1,0]-p[0,0])==square_width
-                    and abs(p[3,1]-p[0,1])==square_width):
-                    temp.append(p)
-        resultPoly = PolygonSet(temp)
+
+        # Only check non empty PolygonSet
+        if np.all(resultPoly.polygons[0]!=np.array([[0., 0.]])):
+            temp = []
+            for p in resultPoly.polygons:
+                # We keep only quadrilateral
+                if p.shape[0]==split_nb and p.shape[1]==2:
+                    if np.isclose(np.sum(np.hypot( *(p - np.roll(p, -1, axis=0)).T )), split_nb*square_width, atol=1e-2):
+                        temp.append(p)
+
+            # if we still have some square left
+            if len(temp)>0:
+                resultPoly = PolygonSet(temp)
+            else:
+                resultPoly = PolygonSet()
 
     return resultPoly.change_layer(layer=layer,
                                    datatype=datatype,
