@@ -230,11 +230,18 @@ def mark_uv(layer_uv_mask:int = 0,
             nb_repetitions: int = 3,
             ) -> PolygonSet:
     """
-    Returns an UV-mark.
+        Returns an UV-mark.
 
     Args:
-        layer (int, optional): gds layer of chip marks. Defaults to 1.
-        datatype (int, optional): gds datatype of chip marks. Defaults to 1.
+        layer_uv_mask (int, optional): Layer for the UV mask. Defaults to 0.
+        datatype_uv_mask (int, optional): Datatype for the UV mask. Defaults to 0.
+        layer_metallisation (int, optional): Layer for the mark on the chip. Defaults to 1.
+        datatype_metallisation (int, optional): Datatype for the mark on the chip. Defaults to 0.
+        square_size (int, optional): Size of the square marks on the chip, in um. Defaults to 30.
+        size_difference (int, optional): Size difference of the squares between the marks on the wafer and the UV mask, in um. Defaults to -3.
+        window_height (int, optional): Height of the surrounding window on the UV mask, in um. Defaults to 170.
+        window_width (int, optional): Width of the surrounding window on the UV mask, in um. Defaults to 120.
+        nb_repetitions (int, optional): Number of pairs of square marks. Defaults to 3.
 
     Returns:
         PolygonSet: Set of polygons containing UV marks.
@@ -252,7 +259,6 @@ def mark_uv(layer_uv_mask:int = 0,
     unit += frame
     units = PolygonSet()
     for i in range(nb_repetitions):
-        print(i)
         units += copy.deepcopy(unit).translate(i*120, 0)
 
     return merge(units.center())
