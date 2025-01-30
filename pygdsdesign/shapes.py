@@ -219,6 +219,51 @@ def global_marks_ebeam(w: float=10,
     return tot
 
 
+def mark_uv(layer_uv_mask:int = 0,
+            datatype_uv_mask:int = 0,
+            layer_metallisation: int = 1,
+            datatype_metallisation:int = 0,
+            square_size: int = 30,
+            size_difference: int = -3,
+            window_height:int = 170,
+            window_width:int = 120 ,
+            nb_repetitions: int = 3,
+            ) -> PolygonSet:
+    """
+        Returns an UV-mark.
+
+    Args:
+        layer_uv_mask (int, optional): Layer for the UV mask. Defaults to 0.
+        datatype_uv_mask (int, optional): Datatype for the UV mask. Defaults to 0.
+        layer_metallisation (int, optional): Layer for the mark on the chip. Defaults to 1.
+        datatype_metallisation (int, optional): Datatype for the mark on the chip. Defaults to 0.
+        square_size (int, optional): Size of the square marks on the chip, in um. Defaults to 30.
+        size_difference (int, optional): Size difference of the squares between the marks on the wafer and the UV mask, in um. Defaults to -3.
+        window_height (int, optional): Height of the surrounding window on the UV mask, in um. Defaults to 170.
+        window_width (int, optional): Width of the surrounding window on the UV mask, in um. Defaults to 120.
+        nb_repetitions (int, optional): Number of pairs of square marks. Defaults to 3.
+
+    Returns:
+        PolygonSet: Set of polygons containing UV marks.
+    """
+    square = Rectangle(point1=[0,0], point2=[square_size, square_size], layer=layer_metallisation, datatype=datatype_metallisation)
+    unit = square + copy.deepcopy(square).translate(0, 50)
+    unit.center()
+    dummy_unit = offset(unit, distance=size_difference)
+    window = Rectangle(point1=[0,0], point2=[window_width, window_height], layer=layer_uv_mask, datatype=datatype_uv_mask).center()
+    frame1 = offset(window, distance=-5*size_difference)
+    frame2 = offset(window, distance=-4*size_difference)
+    frame = boolean(operand1=frame1, operand2=frame2, operation='not', layer=layer_uv_mask, datatype=datatype_uv_mask)
+    window = boolean(operand1=window, operand2=dummy_unit, operation='not', layer=layer_uv_mask, datatype=datatype_uv_mask)
+    unit += window
+    unit += frame
+    units = PolygonSet()
+    for i in range(nb_repetitions):
+        units += copy.deepcopy(unit).translate(i*120, 0)
+
+    return merge(units.center())
+
+
 def chip_marks_ebeam(layer: int=1,
                      datatype: int=1) -> PolygonSet:
     """
