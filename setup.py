@@ -2,7 +2,7 @@ from setuptools import setup, find_packages, Extension
 
 
 setup(name='pygdsdesign',
-      version='0.17.4',
+      version='0.17.5',
       use_2to3=False,
       author='Étienne Dumur, Sacha Wos',
       author_email='etienne.dumur@gmail.com',

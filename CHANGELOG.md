@@ -1,3 +1,8 @@
+pygdsdesign-0.17.5
+
+  Bug fixes:
+    - bugfix of layer 42 of the qubit mask. Removed crosses that were not existing in reality
+
 pygdsdesign-0.17.4
 
   Bug fixes:
