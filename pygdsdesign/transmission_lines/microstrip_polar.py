@@ -209,6 +209,63 @@ class MicroStripPolar(TransmissionLine):
 
         return self
 
+
+    def add_taper_arctan(self, length: float,
+                               new_width: float,
+                               smouthness: float=5,
+                               nb_points: int=51,
+                               ) -> PolygonSet:
+        """
+        Add smooth taper between the current and the new width.
+        The equation of the smooth curve is based on the taper function
+
+        Parameters
+        ----------
+        length : float
+            Length of the strip in um.
+        new_width : float
+            New width of the microstrip in um.
+        smoothness : float (default 1)
+            Slop of the taper, smaller number implying sharper transition.
+        nb_points : int (default=50)
+            Number of point used in the polygon.
+        """
+
+        # Normalize curve
+        x = np.linspace(-smouthness, smouthness, nb_points)
+        y = np.arctan(x)/np.pi*2
+        y -= y.min()
+        y /= y.max()
+
+        #  Build arctan polygon
+        y1 = +y*(new_width/2-self._w/2) + self._w/2
+        y2 = -y*(new_width/2-self._w/2) - self._w/2
+
+        # Give polygon its length
+        x = x/smouthness*length/2
+        x -= x.min()
+
+        # Build coordinates
+        x = np.concatenate((x, x[::-1])) + self.ref[0]
+        y = np.concatenate((y1, y2[::-1])) + self.ref[1]
+        p = np.vstack((x, y)).T
+
+        self._add(PolygonSet(polygons=[p],
+                             layers=[self._layer],
+                             datatypes=[self._datatype],
+                             names=[self._name],
+                             colors=[self._color]).rotate(self._angle,[self.ref[0],self.ref[1]]))
+
+        self.ref = [self.ref[0] + self._rot(length , 0,-self._angle)[0],
+                    self.ref[1] + self._rot(length , 0, -self._angle)[1]]
+
+        self.total_length += abs(length)
+
+        self._w = new_width
+
+        return self
+
+
     ###########################################################################
     #
     #                   Generic parametric curve
