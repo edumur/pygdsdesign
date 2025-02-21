@@ -267,6 +267,79 @@ class CPWPolar(TransmissionLine):
 
         return self
 
+
+    def add_taper_arctan(self, length: float,
+                               new_width: float,
+                               new_gap: float,
+                               smouthness: float=5,
+                               nb_points: int=51,
+                               ) -> PolygonSet:
+        """
+        Add smooth taper between the current and the new width.
+        The equation of the smooth curve is based on the taper function
+
+        Parameters
+        ----------
+        length : float
+            Length of the taper in um.
+        new_width : float
+            New width of the microstrip in um.
+        new_gap : float
+            New gap of the microstip in um.
+        """
+        # Normalize curve
+        x = np.linspace(-smouthness, smouthness, nb_points)
+        y = np.arctan(x)/np.pi*2
+        y -= y.min()
+        y /= y.max()
+
+        #  Build arctan polygon
+
+        # Give polygon its length
+        x = x/smouthness*length/2
+        x -= x.min()
+
+        # Top one
+        # top external
+        y1 = +y*(new_width/2+new_gap-self._w/2-self._s) + self._w/2 + self._s
+        # top internal
+        y2 = +y*(new_width/2-self._w/2) + self._w/2
+        # Build coordinates
+        x = np.concatenate((x, x[::-1])) + self.ref[0]
+        yt = np.concatenate((y1, y2[::-1])) + self.ref[1]
+        p1 = np.vstack((x, yt)).T
+
+        # bottom one
+        # bottom external
+        y3 = -y*(new_width/2+new_gap-self._w/2-self._s) - self._w/2 - self._s
+        # bottom internal
+        y4 = -y*(new_width/2-self._w/2) - self._w/2
+        # Build coordinates
+        yb = np.concatenate((y3, y4[::-1])) + self.ref[1]
+        p2 = np.vstack((x, yb)).T
+
+        self._add(PolygonSet(polygons=[p1, p2],
+                             layers=[self._layer],
+                             datatypes=[self._datatype],
+                             names=[self._name],
+                             colors=[self._color]).rotate(self._angle,[self.ref[0],self.ref[1]]))
+
+        # generate bounding polygon
+        yb = np.concatenate((y1, y3[::-1])) + self.ref[1]
+        pbp = np.vstack((x, yb)).T
+        bp = PolygonSet(polygons=[pbp]).rotate(self._angle,[self.ref[0],self.ref[1]])
+        self._bounding_polygon+=bp
+
+        # Update internal properties
+        self.ref = [self.ref[0]+length*np.cos(self._angle),
+                    self.ref[1]+length*np.sin(self._angle)]
+
+        self.total_length += abs(length)
+        self._w = new_width
+        self._s = new_gap
+
+        return self
+
     ###########################################################################
     #
     #                   Generic parametric curve
