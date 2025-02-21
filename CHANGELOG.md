@@ -1,3 +1,8 @@
+pygdsdesign-0.17.6
+
+  New features:
+    - Add smooth tapering for Polar transmission line
+
 pygdsdesign-0.17.5
 
   Bug fixes:
