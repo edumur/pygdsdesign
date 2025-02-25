@@ -1078,6 +1078,89 @@ def dicing_saw_mark(substrate: str='si',
     return t
 
 
+def dicing_saw_mark_hollow(substrate: str='si',
+                           layer: int=1,
+                           name: str='',
+                           color: str='',
+                           datatype: int=1,
+                           ratio: float=5) -> PolygonSet:
+    """
+    Hollow version of `dicing_saw_mark`.
+    shorter by a factor 8 to write.
+    Return dicing saw marks in a shape of a cross.
+    Theses mark are done in such way that the blade thickness used at the BCAI
+    will completely delete the mark from the leftover chips, a.k.a. the blade
+    thickness corresponds to the mark width.
+    Hence, for each substrate type corresponds a mark thickness:
+        Si    -> 60um width
+        Al2O3 -> 250um width
+
+    Args:
+        substrate: Nature of the substrate, must be: ('si', 'silicium', 'al2o3',
+            'sapphire').
+            Defaults to 'si'.
+        layer: Number of the metal layer.
+            Defaults to 0.
+        name: Name of the metal layer.
+            Defaults to ''.
+        color: Color of the metal layer.
+            Defaults to ''.
+        datatype: Datatype of the metal layer.
+            Defaults to 0.
+        ratio: ratio length/width of the dicing saw mark.
+            Defaults to 5.
+    """
+
+    if substrate.lower() in ('si', 'silicium'):
+        w = 60
+        l = ratio*w
+    elif substrate.lower() in ('al2o3', 'sapphire'):
+        w = 250
+        l = ratio*w
+    else:
+        raise ValueError('substrate must be "si", or "al2o3"')
+
+    s = l/2 - w/2
+    cusp = w
+
+    t = PolygonSet(polygons   = [[(-l/2, w/2)]],
+                   layers     = [layer],
+                   datatypes  = [datatype],
+                   colors     = [color],
+                   names      = [name])
+    t > ( s,  0)
+    t > ( 0,  s)
+    t > ( w/2,  -cusp)
+    t > ( w/2,   cusp)
+    t > ( 0, -s)
+    t > ( s,  0)
+    t > ( -cusp, -w/2)
+    t > ( cusp, -w/2)
+    t > (-s,  0)
+    t > ( 0, -s)
+    t > (-w/2,  cusp)
+    t > (-w/2,  -cusp)
+    t > ( 0,  s)
+    t > (-s,  0)
+    t > ( cusp,  w/2)
+
+    from .operation import grid_cover
+
+    return subtraction(t, grid_cover(t,
+                                     centered=True,
+                                     square_width=w/10,
+                                     square_gap=2,
+                                     safety_margin=2,
+                                     only_square=False,
+                                     hexagonal_grid=True,
+                                     ),
+                       layer=layer,
+                       datatype=datatype,
+                       name=name,
+                       color=color,
+                       )
+
+
 def spiral(
     inner_diameter: float,
     width: float,

@@ -3,7 +3,16 @@ import time
 import numpy as np
 
 from pygdsdesign import GdsLibrary
-from pygdsdesign.shapes import cross, crosses, global_marks_ebeam, chip_marks_ebeam, chip_marks_laser, dicing_saw_mark, mark_uv
+from pygdsdesign.shapes import (
+    cross,
+    crosses,
+    global_marks_ebeam,
+    chip_marks_ebeam,
+    chip_marks_laser,
+    dicing_saw_mark,
+    dicing_saw_mark_hollow,
+    mark_uv,
+)
 
 start = time.time()
 
@@ -43,6 +52,11 @@ tot+=dicing_saw_mark().translate(-1500, -1500)
 tot+=dicing_saw_mark().translate(-1500, 1500)
 tot+=dicing_saw_mark(substrate='sapphire').translate(1500, -1500)
 tot+=dicing_saw_mark(substrate='sapphire').translate(1500, 1500)
+
+tot+=dicing_saw_mark_hollow().translate(-4000, -4000)
+tot+=dicing_saw_mark_hollow().translate(-4000, 4000)
+tot+=dicing_saw_mark_hollow(substrate='sapphire').translate(4000, -4000)
+tot+=dicing_saw_mark_hollow(substrate='sapphire').translate(4000, 4000)
 
 cell.add(tot)
 
