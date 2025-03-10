@@ -212,12 +212,12 @@ class MicroStripPolar(TransmissionLine):
 
     def add_taper_arctan(self, length: float,
                                new_width: float,
-                               smouthness: float=5,
+                               smoothness: float=5,
                                nb_points: int=51,
                                ) -> PolygonSet:
         """
         Add smooth taper between the current and the new width.
-        The equation of the smooth curve is based on the taper function
+        The equation of the smooth curve is based on the arctan function
 
         Parameters
         ----------
@@ -225,14 +225,14 @@ class MicroStripPolar(TransmissionLine):
             Length of the strip in um.
         new_width : float
             New width of the microstrip in um.
-        smoothness : float (default 1)
+        smoothness : float (default 5)
             Slop of the taper, smaller number implying sharper transition.
-        nb_points : int (default=50)
+        nb_points : int (default 51)
             Number of point used in the polygon.
         """
 
         # Normalize curve
-        x = np.linspace(-smouthness, smouthness, nb_points)
+        x = np.linspace(-smoothness, smoothness, nb_points)
         y = np.arctan(x)/np.pi*2
         y -= y.min()
         y /= y.max()
@@ -242,7 +242,7 @@ class MicroStripPolar(TransmissionLine):
         y2 = -y*(new_width/2-self._w/2) - self._w/2
 
         # Give polygon its length
-        x = x/smouthness*length/2
+        x = x/smoothness*length/2
         x -= x.min()
 
         # Build coordinates
