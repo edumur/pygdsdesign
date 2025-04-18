@@ -78,9 +78,19 @@ grid2 = grid_cover(
 
 
 
-tot += r1 + r2 + grid1 + grid2
+# tot += r1 + r2 + grid1 + grid2
+
+a = Rectangle((0, 0), (50, 50))
+b = Rectangle((10, 10), (40, 40))
+c = subtraction(a, b)
+print(c)
+# tot += a+ b
+tot += c
+
+tot += grid_cover(c, 0.5, 0.5, 0.5, hexagonal_grid=True, layer=2)
+
 
 # Add polygons to cell
 cell.add(tot)
 
-lib.export_gds("gridcover.gds")
+lib.export_gds("lol.gds")
