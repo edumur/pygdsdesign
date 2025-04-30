@@ -288,9 +288,14 @@ class CPWPolar(TransmissionLine):
             New gap of the cpw in um.
         smoothness : float (default 5)
             Slop of the taper, smaller number implying sharper transition.
+            Must be positive
         nb_points : int (default 51)
             Number of point used in the polygon.
         """
+
+        if smoothness<0:
+            raise ValueError('"smoothness" must be > 0, currently {}'.format(smoothness))
+
         # Normalize curve
         x = np.linspace(-smoothness, smoothness, nb_points)
         y = np.arctan(x)/np.pi*2
