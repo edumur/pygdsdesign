@@ -1,5 +1,10 @@
 pygdsdesign-0.17.6
 
+  New features:
+    - Add smooth tapering for Polar transmission line
+
+pygdsdesign-0.17.5
+
   Bug fixes:
     - bugfix of layer 42 of the qubit mask. Removed crosses that were not existing in reality
 
