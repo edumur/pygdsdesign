@@ -1,9 +1,11 @@
-from functools import partial
-import numpy as np
 import copy
-from typing import Callable, Tuple, Optional, Dict, Union
-from typing_extensions import Literal
+import warnings
+from functools import partial
+from typing import Callable, Dict, Optional, Tuple, Union
+
+import numpy as np
 from scipy.integrate import quad
+from typing_extensions import Literal
 
 from pygdsdesign.polygons import Rectangle
 from pygdsdesign.polygonSet import PolygonSet
@@ -430,6 +432,11 @@ class CPW(TransmissionLine):
         new_gape : float
             New gape of the coplanar waveguide in um.
         """
+
+        old_overall_width = self.width + self.gap
+        new_overall_width = new_width + new_gap
+        if x**2+y**2 < abs(old_overall_width - new_overall_width):
+            warnings.warn("[pygdsdesign] You try to taper a feedline over alength scale that is shorter than the overall width change. This might create shorts in your design!",stacklevel=4,)
 
         p = PolygonSet(polygons=[[(0., self._w/2.)]],
                        layers=[self._layer],

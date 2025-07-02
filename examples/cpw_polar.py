@@ -1,7 +1,9 @@
-import numpy as np
-from copy import copy,deepcopy
+from copy import copy, deepcopy
 
-from pygdsdesign import (GdsLibrary, PolygonSet, Text, CPWPolar)
+import numpy as np
+
+from pygdsdesign import CPWPolar, GdsLibrary, PolygonSet, Text
+
 
 def spiral(u, args):
 
@@ -107,7 +109,13 @@ b_p+=m.bounding_polygon.change_layer(42)
 cell.add(b_p)
 tot+=m
 
-tot+=m
+#adding bounding polygon
+taper_test = CPWPolar(width=1, gap=0.2, angle=0,layer=43)
+taper_test.add_line(3)
+taper_test.add_taper(0.3, 5, 1)
+taper_test.add_taper_arctan(0.3, 1, 0.2)
+
+tot+=taper_test
 
 
 
