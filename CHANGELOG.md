@@ -1,3 +1,8 @@
+pygdsdesign-0.17.7
+
+  New features:
+    - Add warning for risky taper
+
 pygdsdesign-0.17.6
 
   New features:
