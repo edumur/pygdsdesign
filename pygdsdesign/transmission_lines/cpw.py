@@ -436,7 +436,7 @@ class CPW(TransmissionLine):
         old_overall_width = self.width + self.gap
         new_overall_width = new_width + new_gap
         if x**2+y**2 < abs(old_overall_width - new_overall_width):
-            warnings.warn("[pygdsdesign] You try to taper a feedline over alength scale that is shorter than the overall width change. This might create shorts in your design!",stacklevel=4,)
+            warnings.warn("[pygdsdesign] You try to taper a CPW over a length scale that is shorter than the overall width change. This might create shorts in your design!", stacklevel=2)
 
         p = PolygonSet(polygons=[[(0., self._w/2.)]],
                        layers=[self._layer],
