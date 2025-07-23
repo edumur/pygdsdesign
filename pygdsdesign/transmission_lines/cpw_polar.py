@@ -1,15 +1,17 @@
-import numpy as np
-import math
 import copy
-from typing import Callable, Tuple, Optional, Union
+import math
+import warnings
+from typing import Callable, Optional, Tuple, Union
+
+import numpy as np
 from scipy.integrate import quad
 
+from pygdsdesign.functions import distance
 from pygdsdesign.polygons import Rectangle
 from pygdsdesign.polygonSet import PolygonSet
+from pygdsdesign.shapes import butterworth_filter
 from pygdsdesign.transmission_lines.transmission_line import TransmissionLine
 from pygdsdesign.typing_local import Coordinate
-from pygdsdesign.shapes import butterworth_filter
-from pygdsdesign.functions import distance
 
 class CPWPolar(TransmissionLine):
 
@@ -234,6 +236,11 @@ class CPWPolar(TransmissionLine):
             New gap of the microstip in um.
         """
 
+        old_overall_width = self.width + self.gap
+        new_overall_width = new_width + new_gap
+        if l_len < abs(old_overall_width - new_overall_width):
+            warnings.warn("[pygdsdesign] You try to taper a CPW over a length scale that is shorter than the overall width change. This might create shorts in your design!", stacklevel=2)
+
         p = PolygonSet(polygons=[[(0., self._w/2.)]],
                        layers=[self._layer],
                        datatypes=[self._datatype],
@@ -292,6 +299,10 @@ class CPWPolar(TransmissionLine):
         nb_points : int (default 51)
             Number of point used in the polygon.
         """
+        old_overall_width = self.width + self.gap
+        new_overall_width = new_width + new_gap
+        if length < abs(old_overall_width - new_overall_width):
+            warnings.warn("[pygdsdesign] You try to taper a CPW over a length scale that is shorter than the overall width change. This might create shorts in your design!", stacklevel=2)
 
         if smoothness<0:
             raise ValueError('"smoothness" must be > 0, currently {}'.format(smoothness))
