@@ -1,7 +1,7 @@
 import numpy as np
-import copy
-from typing import Callable, Tuple, Optional, Union
+from typing import Callable, Tuple, Optional
 from scipy.integrate import quad
+
 
 from pygdsdesign.polygons import Rectangle
 from pygdsdesign.polygonSet import PolygonSet
@@ -164,6 +164,102 @@ class MicroStripPolar(TransmissionLine):
         self._add2param(x0+radius*np.cos(theta),
                         y0+radius*np.sin(theta),
                         np.linspace(0, 1, nb_points)*radius*np.pi/2)
+
+        return self
+
+
+    def add_gaussian_turn(
+        self,
+        length: float,
+        delta_angle: float,
+        sigma: float | None = None,
+        nb_points: int = 51,
+    ) -> PolygonSet:
+        """
+        Add a smooth Gaussian-turn segment to the current path or geometry.
+
+        The turn is created using a Gaussian curvature profile so that the tangent
+        angle changes smoothly by `delta_angle` over the specified `length`. The
+        function also computes the boundaries of the curve (strip) based on the
+        path width.
+
+        Parameters
+        ----------
+        length : float
+            Arc length of the Gaussian turn.
+        delta_angle : float
+            Total change in tangent angle over the turn (radians).
+        sigma : float or None, optional
+            Standard deviation of the Gaussian curvature. If None, a default
+            of `length/6` is used.
+        nb_points : int, optional
+            Number of points to discretize the curve. Default is 51.
+
+        Returns
+        -------
+        self : PolygonSet
+            Returns the updated object for chaining.
+
+        Notes
+        -----
+        - The method updates the internal reference point, total length, and
+        path angle after adding the turn.
+        - The curve is represented as a polygon strip of width `self._w`.
+        - Uses `_get_gaussian_curve` to compute the smooth path coordinates.
+        """
+        # Discretize the parameter along the curve
+        s = np.linspace(0.0, length, nb_points)
+
+        # Compute the Gaussian curve (both normalized and global coordinates)
+        x_norm, y_norm, x_global, y_global = self._get_gaussian_curve(
+            delta_angle=delta_angle,
+            length=length,
+            nb_points=nb_points,
+            sigma=sigma,
+            initial_angle=self._angle,
+            origin=self.ref,
+        )
+
+        # Compute local derivatives along the curve
+        dx, dy = np.gradient(x_norm, s), np.gradient(y_norm, s)
+        tangent_angle = np.angle(dx + 1j * dy)  # tangent direction at each point
+
+        # Compute the boundaries of the strip using path width
+        x_lower = x_norm + np.cos(tangent_angle - np.pi/2) * self._w / 2
+        y_lower = y_norm + np.sin(tangent_angle - np.pi/2) * self._w / 2
+
+        x_upper = x_norm - np.cos(tangent_angle - np.pi/2) * self._w / 2
+        y_upper = y_norm - np.sin(tangent_angle - np.pi/2) * self._w / 2
+
+        # Fix start point of the strip
+        x_lower[0], y_lower[0] = 0.0, -self._w / 2
+        x_upper[0], y_upper[0] = 0.0, +self._w / 2
+
+        # Fix end point  of the strip
+        x_lower[-1], y_lower[-1] = x_norm[-1] + np.cos(np.pi/2-delta_angle)*self._w / 2, y_norm[-1] - np.sin(np.pi/2-delta_angle)*self._w / 2
+        x_upper[-1], y_upper[-1] = x_norm[-1] - np.cos(np.pi/2-delta_angle)*self._w / 2, y_norm[-1] + np.sin(np.pi/2-delta_angle)*self._w / 2
+
+        # Concatenate upper and lower boundaries to form polygon
+        x_strip = np.concatenate((x_lower, x_upper[::-1]))
+        y_strip = np.concatenate((y_lower, y_upper[::-1]))
+
+        # Create PolygonSet and apply rotation/translation
+        polygon = PolygonSet(
+            polygons=[np.vstack((x_strip, y_strip)).T],
+            layers=[self._layer],
+            datatypes=[self._datatype],
+            names=[self._name],
+            colors=[self._color],
+        ).rotate(self._angle).translate(*self.ref)
+
+        # Add polygon to the object
+        self._add(polygon)
+
+        # Update internal state
+        self.total_length += length
+        self._angle += delta_angle
+        self._add2param(x_global, y_global, s)
+        self.ref = [x_global[-1], y_global[-1]]
 
         return self
 

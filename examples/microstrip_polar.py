@@ -120,6 +120,49 @@ m.add_line(10)
 tot+=m
 
 
+# Test Gaussian turn, should form a close loop
+m = MicroStripPolar(2.568, 0.13, layer=5, name='test_gaussian_turn')
+m.add_line(10)
+m.add_gaussian_turn(47, 0.69)
+m.add_line(10)
+m.add_gaussian_turn(50, -1.69)
+m.add_gaussian_turn(50, -2.69)
+m.add_gaussian_turn(50, 5.69)
+m += Text('Gaussian turn', 50, (0, 0), layer=5, name='test_gaussian_turn').center().translate(0, 150)
+cell.add(m.translate(-350, 350))
+
+
+
+# Test Gaussian turn, should form a close loop
+m = MicroStripPolar(2, 0, layer=6, name='test_gaussian_loop')
+m.add_line(10)
+m.add_gaussian_turn(50, np.pi/2)
+m.add_line(10)
+m.add_gaussian_turn(50, -np.pi/2)
+m.add_line(10)
+m.add_gaussian_turn(50, np.pi/2)
+m.add_line(10)
+m.add_gaussian_turn(50, np.pi/2)
+m.add_line(10)
+m.add_gaussian_turn(50, -np.pi/2)
+m.add_line(10)
+m.add_gaussian_turn(50, np.pi/2)
+m.add_line(10)
+m.add_gaussian_turn(50, np.pi/2)
+m.add_line(10)
+m.add_gaussian_turn(50, -np.pi/2)
+m.add_line(10)
+m.add_gaussian_turn(50, np.pi/2)
+m.add_line(10)
+m.add_gaussian_turn(50, np.pi/2)
+m.add_line(10)
+m.add_gaussian_turn(50, -np.pi/2)
+m.add_line(10)
+m.add_gaussian_turn(50, np.pi/2)
+m.center()
+m += Text('Gaussian loop', 50, (0, 0), layer=6, name='test_gaussian_loop').center().translate(0, 150)
+cell.add(m.translate(350, 350))
+
 
 
 cell.add(tot)

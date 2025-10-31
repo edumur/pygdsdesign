@@ -1,10 +1,14 @@
 from functools import lru_cache, partial
 import numpy as np
+from math import (
+    sqrt,
+    erf,
+)
 from typing import Optional, Union, Tuple, Self
 from scipy.special import fresnel
 from typing import Literal, Dict, Callable
 from scipy.interpolate import InterpolatedUnivariateSpline
-from scipy.integrate import quad
+from scipy.integrate import quad, cumulative_trapezoid
 from scipy.special import fresnel
 from scipy.optimize import fsolve
 _mpone = np.array((-1.0, 1.0))
@@ -146,6 +150,36 @@ class TransmissionLine(PolygonSet):
                 return dx[::-1], dy[::-1]
 
 
+    @staticmethod
+    def curve_length(t, f_dx, f_dy):
+        """
+        Compute the differential arc length of a parametric curve.
+
+        Parameters
+        ----------
+        t : float or array_like
+            Parameter value(s) at which to evaluate the curve length element.
+        f_dx : callable
+            Function that returns the derivative dx/dt evaluated at `t`.
+        f_dy : callable
+            Function that returns the derivative dy/dt evaluated at `t`.
+
+        Returns
+        -------
+        float or ndarray
+            The magnitude of the velocity vector, i.e. the instantaneous
+            rate of change of arc length with respect to the parameter:
+            ``sqrt((dx/dt)**2 + (dy/dt)**2)``.
+
+        Notes
+        -----
+        This does not return the *total* length of the curve — only the local
+        differential length element at each `t`. To compute total arc length
+        over an interval, integrate this function numerically.
+        """
+        return np.hypot(f_dx(t), f_dy(t))
+
+
     @lru_cache
     def calc(self, radius: float,
                    nb_points: int) -> Tuple[np.ndarray, np.ndarray,
@@ -153,10 +187,6 @@ class TransmissionLine(PolygonSet):
                                             np.ndarray, np.ndarray,
                                             Callable, Callable,
                                             float]:
-
-        # Calculate curve length
-        def curve_length(t):
-            return np.hypot(f_dx(t), f_dy(t))
 
         t = np.linspace(0, self._get_fresnel_parametric_length(np.pi/2.), nb_points)
         x, y = self._get_fresnel_curve(np.pi/2, radius, nb_points)
@@ -168,7 +198,7 @@ class TransmissionLine(PolygonSet):
         f_dx = InterpolatedUnivariateSpline(t, dx)
         f_dy = InterpolatedUnivariateSpline(t, dy)
 
-        length = quad(curve_length, t[0], t[-1])[0]
+        length = quad(self.curve_length, t[0], t[-1], args=(f_dx, f_dy))[0]
 
         return dx, dy, t, x, y, f_dx, f_dy, length
 
@@ -388,6 +418,117 @@ class TransmissionLine(PolygonSet):
         x = x/r*radius
 
         return x[::-1], y[::-1]
+
+
+    ###########################################################################
+    #
+    #                         Gaussian turn
+    #
+    ###########################################################################
+
+
+
+    def _get_gaussian_curve(
+        self,
+        delta_angle: float,
+        length: float = 1.0,
+        nb_points: int = 51,
+        sigma: float | None = None,
+        initial_angle: float = 0.0,
+        origin: Coordinate = (0.0, 0.0),
+    ) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+        """
+        Generate a smooth parametric curve whose curvature follows a Gaussian profile.
+
+        This function constructs a curve `(x(s), y(s))` such that the local curvature
+        `kappa(s)` is proportional to a Gaussian centered at the midpoint of the curve.
+        The total integrated curvature equals `delta_angle`, producing a smooth turn
+        of that angle. Both normalized and positioned versions of the curve are returned.
+
+        Parameters
+        ----------
+        delta_angle : float
+            The total change in tangent angle over the curve, in radians (e.g. π/2 for 90° turn).
+        length : float, optional
+            The total arc length of the curve. Default is 1.0.
+        nb_points : int, optional
+            Number of discretization points along the curve. Default is 51.
+        sigma : float or None, optional
+            Standard deviation of the Gaussian curvature distribution. If None,
+            defaults to `length / 6`, giving near-zero curvature at both ends.
+        initial_angle : float, optional
+            Initial tangent angle (radians) of the curve. Default is 0.
+        origin : tuple of float, optional
+            (x, y) coordinates of the curve’s starting point. Default is (0, 0).
+
+        Returns
+        -------
+        x_norm : ndarray
+            Normalized x-coordinates of the curve (starting at origin, no rotation).
+        y_norm : ndarray
+            Normalized y-coordinates of the curve (starting at origin, no rotation).
+        x_global : ndarray
+            Transformed x-coordinates after applying initial angle and origin.
+        y_global : ndarray
+            Transformed y-coordinates after applying initial angle and origin.
+
+        Notes
+        -----
+        - The curvature profile is normalized so that its integral over the curve length
+        equals `delta_angle`.
+        - The curve is computed by integrating the tangent angle θ(s) using the
+        trapezoidal rule for improved numerical accuracy.
+        - The Gaussian curvature ensures smooth transitions (zero curvature at ends).
+        """
+
+        # Default sigma chosen so the Gaussian decays to near zero at both ends
+        if sigma is None:
+            sigma = length / 6.0
+
+        # Parametric variable (arc length parameter)
+        s = np.linspace(0.0, length, nb_points)
+        mu = length / 2.0
+        sqrt2 = sqrt(2.0)
+
+        # -------------------------------------------------------------------------
+        # Compute normalization factor so that ∫ kappa(s) ds = delta_angle
+        # -------------------------------------------------------------------------
+        def gaussian_integral(a: float, b: float) -> float:
+            """Integral of exp(-(s - mu)^2 / (2σ^2)) between limits a and b."""
+            factor = sigma * sqrt(np.pi / 2.0)
+            return factor * (erf((b - mu) / (sqrt2 * sigma)) - erf((a - mu) / (sqrt2 * sigma)))
+
+        integral_total = gaussian_integral(0.0, length)
+        if integral_total == 0:
+            raise ValueError("Chosen sigma leads to zero integral; choose a larger sigma or length.")
+
+        # Amplitude of the curvature to achieve the desired total angle
+        amplitude = delta_angle / integral_total
+
+        # -------------------------------------------------------------------------
+        # Compute tangent angle θ(s) using analytical error function expression
+        # -------------------------------------------------------------------------
+        erf_start = erf((0.0 - mu) / (sqrt2 * sigma))
+        erf_arg = (s - mu) / (sqrt2 * sigma)
+        theta_increment = amplitude * sigma * sqrt(np.pi / 2.0) * (np.vectorize(erf)(erf_arg) - erf_start)
+
+        # θ(s) for normalized curve (starts at θ=0)
+        theta_norm = theta_increment
+
+        # θ(s) for positioned curve (starts at initial_angle)
+        theta_global = initial_angle + theta_increment
+
+        # -------------------------------------------------------------------------
+        # Integrate (cosθ, sinθ) to obtain x(s), y(s) using trapezoidal integration
+        # -------------------------------------------------------------------------
+        x_norm = cumulative_trapezoid(np.cos(theta_norm), s, initial=0.0)
+        y_norm = cumulative_trapezoid(np.sin(theta_norm), s, initial=0.0)
+
+        x_global = origin[0] + cumulative_trapezoid(np.cos(theta_global), s, initial=0.0)
+        y_global = origin[1] + cumulative_trapezoid(np.sin(theta_global), s, initial=0.0)
+
+        return x_norm, y_norm, x_global, y_global
+
 
 
     ###########################################################################
