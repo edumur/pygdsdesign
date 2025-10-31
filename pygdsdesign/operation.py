@@ -1,13 +1,23 @@
 from math import ceil
-from typing import Any, Dict, List, Literal, Tuple, Optional
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    List,
+    Literal,
+    Tuple,
+    Optional,
+)
 import warnings
 import copy as libcopy
 import numpy as np
+from scipy.interpolate import interp1d
 
 import clipper
 from pygdsdesign.polygons import Rectangle
 from pygdsdesign.polygonSet import PolygonSet
 from pygdsdesign.typing_local import Coordinates
+from pygdsdesign.transmission_lines.microstrip import MicroStrip
 
 
 def boolean(operand1: PolygonSet,
@@ -853,3 +863,55 @@ def select_polygon_per_name(polygons: PolygonSet,
         return merge(tot)
     else:
         return tot
+
+
+def replace_by_photonic_crystal(microstrip: MicroStrip,
+                                fun_photonic_crystal: Callable[[np.ndarray], np.ndarray],
+                                point_per_micrometer: float = 0.25,
+                                ) -> PolygonSet:
+    """
+    Replace the microstrip by a photonic crystal.
+    The function defining the crystal 'fun_photonic_crystal' should take t the position along the
+    microstrip in argument and return (x, y) the coordinate of one side of the photonic crystal.
+
+    Args:
+        microstrip
+            Microstrip to be replace by the photonic crystal
+        fun_photonic_crystal
+            Function returning the photonic crystal edge as function of the position along the
+            microstrip.
+        point_per_micrometer
+            Resolution of the return polygon.
+            Defaults to 0.25.
+
+    Returns:
+        PolygonSet: _description_
+    """
+
+    # First you need to linearize the parametric coordinate
+    t = np.linspace(0, microstrip.param_curve[:,2][-1], int(microstrip.param_curve[:,2][-1]*point_per_micrometer))
+    x = np.interp(t, microstrip.param_curve[:,2], microstrip.param_curve[:,0])
+    y = np.interp(t, microstrip.param_curve[:,2], microstrip.param_curve[:,1])
+
+    # From the linearized coordinates, we create coordinate functions
+    f_dx = interp1d(t, np.gradient(x, t))
+    f_dy = interp1d(t, np.gradient(y, t))
+
+    f_theta = lambda t: np.angle(f_dx(t)+1j*f_dy(t))
+
+    x1 = x + np.cos(f_theta(t) + np.pi/2)*fun_photonic_crystal(t)
+    y1 = y + np.sin(f_theta(t) + np.pi/2)*fun_photonic_crystal(t)
+
+    x2 = x + np.cos(f_theta(t) - np.pi/2)*fun_photonic_crystal(t)
+    y2 = y + np.sin(f_theta(t) - np.pi/2)*fun_photonic_crystal(t)
+
+    x = np.concatenate((x1, x2[::-1]))
+    y = np.concatenate((y1, y2[::-1]))
+
+    poly = PolygonSet([np.vstack((x, y)).T, ],
+                        layers=[structure._layer],
+                        datatypes=[structure._datatype],
+                        names=[structure._name],
+                        colors=[structure._color]).translate(structure.param_curve[0][0], structure.param_curve[0][1])
+
+    return poly
