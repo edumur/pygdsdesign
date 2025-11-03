@@ -1,3 +1,9 @@
+pygdsdesign-0.17.8
+
+  New features:
+    - Add gaussian curve in `MicrostripPolar`
+    - Add a twpa double spiral example
+
 pygdsdesign-0.17.7
 
   New features:
