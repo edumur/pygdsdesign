@@ -38,11 +38,6 @@ dev = [
 "Homepage" = "https://pypi.org/project/pygdsdesign/"
 
 [tool.setuptools]
-packages = { find = {} }
-
-[tool.setuptools.packages.find]
-where = ["."]
-include = ["pygdsdesign*"]
-
-[tool.setuptools.extension]
-clipper = { sources = ["pygdsdesign/clipper/clipper.cpp"] }
+ext-modules = [
+  {name = "clipper", sources = ["pygdsdesign/clipper/clipper.cpp"]}
+]
