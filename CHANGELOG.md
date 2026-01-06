@@ -1,3 +1,8 @@
+pygdsdesign-0.17.9
+
+  New features:
+    - Add gaussian curve in `CPWPolar`
+
 pygdsdesign-0.17.8
 
   New features:

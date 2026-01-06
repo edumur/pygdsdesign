@@ -120,6 +120,49 @@ tot+=taper_test
 
 
 
+
+# Test Gaussian turn, should form a close loop
+m = CPWPolar(
+    width=largeur_micro,
+    gap=largeur_micro/5,
+    angle=0,
+    layer=6,
+    name='test_gaussian_loop',
+)
+m.add_line(10)
+m.add_gaussian_turn(50, np.pi/2)
+m.add_line(10)
+m.add_gaussian_turn(50, -np.pi/2)
+m.add_line(10)
+m.add_gaussian_turn(50, np.pi/2)
+m.add_line(10)
+m.add_gaussian_turn(50, np.pi/2)
+m.add_line(10)
+m.add_gaussian_turn(50, -np.pi/2)
+m.add_line(10)
+m.add_gaussian_turn(50, np.pi/2)
+m.add_line(10)
+m.add_gaussian_turn(50, np.pi/2)
+m.add_line(10)
+m.add_gaussian_turn(50, -np.pi/2)
+m.add_line(10)
+m.add_gaussian_turn(50, np.pi/2)
+m.add_line(10)
+m.add_gaussian_turn(50, np.pi/2)
+m.add_line(10)
+m.add_gaussian_turn(50, -np.pi/2)
+m.add_line(10)
+m.add_gaussian_turn(50, np.pi/2)
+m.center()
+m += deepcopy(m.bounding_polygon).change_layer(43)
+m += Text('Gaussian loop', 50, (0, 0), layer=6, name='test_gaussian_loop').center().translate(0, 150)
+
+tot += m.translate(350, 350)
+
+
+
+
+
 cell.add(tot)
 # Save GDS file
 lib.write_gds('cpw_polar.gds')
