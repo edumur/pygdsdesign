@@ -4,7 +4,7 @@ from pathlib import Path
 
 basestring = str
 
-import numpy
+import numpy as np
 import datetime
 import struct
 import itertools
@@ -27,7 +27,10 @@ from pygdsdesign.polygonSet import PolygonSet
 from pygdsdesign.polygons import Rectangle
 from pygdsdesign.transmission_lines.microstrip import MicroStrip
 
-_mpone = numpy.array((-1.0, 1.0))
+from pygdsdesign.path import FlexPath
+from pygdsdesign.label import Label
+
+_mpone = np.array((-1.0, 1.0))
 
 use_current_library = True
 """
@@ -213,8 +216,8 @@ class Cell(object):
             s = 1 if scale is None else scale
             t = 0 if rotation is None else rotation
             dx, dy = (0, 0) if translation is None else translation
-            ct = numpy.cos(t)
-            st = numpy.sin(t)
+            ct = np.cos(t)
+            st = np.sin(t)
 
             for poly in new_cell.polygons:
                 if x_reflection:
@@ -232,13 +235,13 @@ class Cell(object):
             for lbl in new_cell.labels:
                 r0 = -1 if lbl.x_reflection is None else 1
                 s0 = 1 if lbl.magnification is None else lbl.magnification
-                t0 = 0 if lbl.rotation is None else (lbl.rotation * numpy.pi / 180)
+                t0 = 0 if lbl.rotation is None else (lbl.rotation * np.pi / 180)
                 dx0, dy0 = lbl.position
                 lbl.position = (
                     dx + s * (dx0 * ct - r * dy0 * st),
                     dy + s * (dx0 * st + r * dy0 * ct),
                 )
-                lbl.rotation = (r * t0 + t) * 180 / numpy.pi
+                lbl.rotation = (r * t0 + t) * 180 / np.pi
                 if lbl.rotation == 0:
                     lbl.rotation = None
                 lbl.magnification = s * s0
@@ -249,13 +252,13 @@ class Cell(object):
             for ref in new_cell.references:
                 r0 = -1 if ref.x_reflection is None else 1
                 s0 = 1 if ref.magnification is None else ref.magnification
-                t0 = 0 if ref.rotation is None else (ref.rotation * numpy.pi / 180)
+                t0 = 0 if ref.rotation is None else (ref.rotation * np.pi / 180)
                 dx0, dy0 = ref.origin
                 ref.origin = (
                     dx + s * (dx0 * ct - r * dy0 * st),
                     dy + s * (dx0 * st + r * dy0 * ct),
                 )
-                ref.rotation = (r * t0 + t) * 180 / numpy.pi
+                ref.rotation = (r * t0 + t) * 180 / np.pi
                 if ref.rotation == 0:
                     ref.rotation = None
                 ref.magnification = s * s0
@@ -284,6 +287,10 @@ class Cell(object):
             self.polygons.append(element)
         elif isinstance(element, Rectangle):
             self.polygons.append(element)
+        elif isinstance(element, FlexPath):
+            self.paths.append(element)
+        elif isinstance(element, Label):
+            self.labels.append(element)
         elif isinstance(element, MicroStrip):
             self.polygons.append(element)
         elif isinstance(element, CellReference) or isinstance(element, CellArray):
@@ -529,7 +536,7 @@ class Cell(object):
         deps_still_valid = all(ref._bb_valid for ref in self.get_dependencies(True))
         cached_bbox_still_valid = self._bb_valid and deps_still_valid
         if not cached_bbox_still_valid:
-            bb = numpy.array(((1e300, 1e300), (-1e300, -1e300)))
+            bb = np.array(((1e300, 1e300), (-1e300, -1e300)))
             all_polygons = []
             for polygon in self.polygons:
                 all_polygons.extend(polygon.polygons)
@@ -540,7 +547,7 @@ class Cell(object):
                 if reference_bb is not None:
                     all_polygons.append(reference_bb)
             if len(all_polygons) > 0:
-                all_points = numpy.concatenate(all_polygons).transpose()
+                all_points = np.concatenate(all_polygons).transpose()
                 bb[0, 0] = min(bb[0, 0], all_points[0].min())
                 bb[0, 1] = min(bb[0, 1], all_points[1].min())
                 bb[1, 0] = max(bb[1, 0], all_points[0].max())
@@ -554,7 +561,7 @@ class Cell(object):
             return None
         else:
             # return a *copy* of the cached bounding box to ensure it doesn't get inadvertently modified
-            return numpy.array(self._bounding_box)
+            return np.array(self._bounding_box)
 
     def get_polygons(self, by_spec=False, depth=None):
         """
@@ -592,7 +599,7 @@ class Cell(object):
             if bb is None:
                 return {} if by_spec else []
             pts = [
-                numpy.array(
+                np.array(
                     [
                         (bb[0, 0], bb[0, 1]),
                         (bb[0, 0], bb[1, 1]),
@@ -609,9 +616,9 @@ class Cell(object):
                     for ii in range(len(polyset.polygons)):
                         key = (polyset.layers[ii], polyset.datatypes[ii])
                         if key in polygons:
-                            polygons[key].append(numpy.array(polyset.polygons[ii]))
+                            polygons[key].append(np.array(polyset.polygons[ii]))
                         else:
-                            polygons[key] = [numpy.array(polyset.polygons[ii])]
+                            polygons[key] = [np.array(polyset.polygons[ii])]
                 for path in self.paths:
                     path_polygons = path.get_polygons(True)
                     for kk in path_polygons.keys():
@@ -634,7 +641,7 @@ class Cell(object):
                 polygons = []
                 for polyset in self.polygons:
                     for points in polyset.polygons:
-                        polygons.append(numpy.array(points))
+                        polygons.append(np.array(points))
                 for path in self.paths:
                     polygons.extend(path.get_polygons())
                 for reference in self.references:
@@ -647,7 +654,7 @@ class Cell(object):
                 polygons = []
                 layer, datatype = by_spec
                 polygons.extend(
-                    numpy.array(polyset.polygons[ii])
+                    np.array(polyset.polygons[ii])
                     for polyset in self.polygons
                     for ii in range(len(polyset.polygons))
                     if polyset.layers[ii] == layer and polyset.datatypes[ii] == datatype
@@ -944,12 +951,12 @@ class Cell(object):
 <defs>
 <style type="text/css">
 """.format(
-                numpy.format_float_positional(w, trim="0", precision=precision),
-                numpy.format_float_positional(h, trim="0", precision=precision),
-                numpy.format_float_positional(x, trim="0", precision=precision),
-                numpy.format_float_positional(y, trim="0", precision=precision),
-                numpy.format_float_positional(w, trim="0", precision=precision),
-                numpy.format_float_positional(h, trim="0", precision=precision),
+                np.format_float_positional(w, trim="0", precision=precision),
+                np.format_float_positional(h, trim="0", precision=precision),
+                np.format_float_positional(x, trim="0", precision=precision),
+                np.format_float_positional(y, trim="0", precision=precision),
+                np.format_float_positional(w, trim="0", precision=precision),
+                np.format_float_positional(h, trim="0", precision=precision),
             )
         )
         ldkeys, ltkeys = self.get_svg_classes()
@@ -998,10 +1005,10 @@ class Cell(object):
         if background is not None:
             outfile.write(
                 '<rect x="{}" y="{}" width="{}" height="{}" fill="{}" stroke="none"/>\n'.format(
-                    numpy.format_float_positional(x, trim="0", precision=precision),
-                    numpy.format_float_positional(y, trim="0", precision=precision),
-                    numpy.format_float_positional(w, trim="0", precision=precision),
-                    numpy.format_float_positional(h, trim="0", precision=precision),
+                    np.format_float_positional(x, trim="0", precision=precision),
+                    np.format_float_positional(y, trim="0", precision=precision),
+                    np.format_float_positional(w, trim="0", precision=precision),
+                    np.format_float_positional(h, trim="0", precision=precision),
                     background,
                 )
             )
@@ -1192,16 +1199,16 @@ class CellReference(object):
         else:
             name = self.ref_cell
         transform = "translate({} {})".format(
-            numpy.format_float_positional(
+            np.format_float_positional(
                 scaling * self.origin[0], trim="0", precision=precision
             ),
-            numpy.format_float_positional(
+            np.format_float_positional(
                 scaling * self.origin[1], trim="0", precision=precision
             ),
         )
         if self.rotation is not None:
             transform += " rotate({})".format(
-                numpy.format_float_positional(
+                np.format_float_positional(
                     self.rotation, trim="0", precision=precision
                 )
             )
@@ -1209,7 +1216,7 @@ class CellReference(object):
             transform += " scale(1 -1)"
         if self.magnification is not None:
             transform += " scale({})".format(
-                numpy.format_float_positional(
+                np.format_float_positional(
                     self.magnification, trim="0", precision=precision
                 )
             )
@@ -1268,14 +1275,14 @@ class CellReference(object):
             Transformed polygons. Same object as `polygons` argument.
         """
         if self.rotation is not None:
-            ct = numpy.cos(self.rotation * numpy.pi / 180.0)
-            st = numpy.sin(self.rotation * numpy.pi / 180.0) * _mpone
+            ct = np.cos(self.rotation * np.pi / 180.0)
+            st = np.sin(self.rotation * np.pi / 180.0) * _mpone
         if self.x_reflection:
-            xrefl = numpy.array((1, -1))
+            xrefl = np.array((1, -1))
         if self.magnification is not None:
-            mag = numpy.array((self.magnification, self.magnification), dtype=float)
+            mag = np.array((self.magnification, self.magnification), dtype=float)
         if self.origin is not None:
-            orgn = numpy.array(self.origin)
+            orgn = np.array(self.origin)
         if isinstance(polygons, dict):
             for kk in polygons.keys():
                 for ii in range(len(polygons[kk])):
@@ -1354,14 +1361,14 @@ class CellReference(object):
         if not isinstance(self.ref_cell, Cell):
             return []
         if self.rotation is not None:
-            ct = numpy.cos(self.rotation * numpy.pi / 180.0)
-            st = numpy.sin(self.rotation * numpy.pi / 180.0) * _mpone
+            ct = np.cos(self.rotation * np.pi / 180.0)
+            st = np.sin(self.rotation * np.pi / 180.0) * _mpone
         if self.x_reflection:
-            xrefl = numpy.array((1, -1))
+            xrefl = np.array((1, -1))
         if self.magnification is not None:
-            mag = numpy.array((self.magnification, self.magnification), dtype=float)
+            mag = np.array((self.magnification, self.magnification), dtype=float)
         if self.origin is not None:
-            orgn = numpy.array(self.origin)
+            orgn = np.array(self.origin)
         polygonsets = self.ref_cell.get_polygonsets(depth=depth)
         for ps in polygonsets:
             for ii in range(len(ps.polygons)):
@@ -1395,11 +1402,11 @@ class CellReference(object):
         if not isinstance(self.ref_cell, Cell):
             return []
         if self.origin is not None:
-            trans = numpy.array(self.origin)
+            trans = np.array(self.origin)
         else:
             trans = None
         if self.rotation is not None:
-            rot = self.rotation * numpy.pi / 180.0
+            rot = self.rotation * np.pi / 180.0
         else:
             rot = None
         return [
@@ -1428,14 +1435,14 @@ class CellReference(object):
         if not isinstance(self.ref_cell, Cell):
             return []
         if self.rotation is not None:
-            ct = numpy.cos(self.rotation * numpy.pi / 180.0)
-            st = numpy.sin(self.rotation * numpy.pi / 180.0) * _mpone
+            ct = np.cos(self.rotation * np.pi / 180.0)
+            st = np.sin(self.rotation * np.pi / 180.0) * _mpone
         if self.x_reflection:
-            xrefl = numpy.array((1, -1))
+            xrefl = np.array((1, -1))
         if self.magnification is not None:
-            mag = numpy.array((self.magnification, self.magnification), dtype=float)
+            mag = np.array((self.magnification, self.magnification), dtype=float)
         if self.origin is not None:
-            orgn = numpy.array(self.origin)
+            orgn = np.array(self.origin)
         labels = self.ref_cell.get_labels(depth=depth, set_transform=set_transform)
         for lbl in labels:
             if self.x_reflection:
@@ -1486,8 +1493,8 @@ class CellReference(object):
         if len(polygons) == 0:
             bb = None
         else:
-            all_points = numpy.concatenate(polygons).transpose()
-            bb = numpy.array(
+            all_points = np.concatenate(polygons).transpose()
+            bb = np.array(
                 (
                     (all_points[0].min(), all_points[1].min()),
                     (all_points[0].max(), all_points[1].max()),
@@ -1685,8 +1692,8 @@ class CellArray(object):
                 # This flag indicates that the rotation is absolute, not
                 # relative (not supported).
                 # word += 0x0002
-                sa = numpy.sin(self.rotation * numpy.pi / 180.0)
-                ca = numpy.cos(self.rotation * numpy.pi / 180.0)
+                sa = np.sin(self.rotation * np.pi / 180.0)
+                ca = np.cos(self.rotation * np.pi / 180.0)
                 tmp = (
                     (x2 - self.origin[0]) * ca
                     - (y2 - self.origin[1]) * sa
@@ -1768,16 +1775,16 @@ class CellArray(object):
         else:
             name = self.ref_cell
         transform = "translate({} {})".format(
-            numpy.format_float_positional(
+            np.format_float_positional(
                 scaling * self.origin[0], trim="0", precision=precision
             ),
-            numpy.format_float_positional(
+            np.format_float_positional(
                 scaling * self.origin[1], trim="0", precision=precision
             ),
         )
         if self.rotation is not None:
             transform += " rotate({})".format(
-                numpy.format_float_positional(
+                np.format_float_positional(
                     self.rotation, trim="0", precision=precision
                 )
             )
@@ -1787,7 +1794,7 @@ class CellArray(object):
             ""
             if self.magnification is None
             else " scale({})".format(
-                numpy.format_float_positional(
+                np.format_float_positional(
                     self.magnification, trim="0", precision=precision
                 )
             )
@@ -1800,10 +1807,10 @@ class CellArray(object):
                 outfile.write(transform)
                 outfile.write(
                     " translate({} {})".format(
-                        numpy.format_float_positional(
+                        np.format_float_positional(
                             dx, trim="0", precision=precision
                         ),
-                        numpy.format_float_positional(
+                        np.format_float_positional(
                             dy, trim="0", precision=precision
                         ),
                     )
@@ -1862,21 +1869,21 @@ class CellArray(object):
             Transformed polygons.
         """
         if self.rotation is not None:
-            ct = numpy.cos(self.rotation * numpy.pi / 180.0)
-            st = numpy.sin(self.rotation * numpy.pi / 180.0) * _mpone
+            ct = np.cos(self.rotation * np.pi / 180.0)
+            st = np.sin(self.rotation * np.pi / 180.0) * _mpone
         if self.magnification is not None:
-            mag = numpy.array((self.magnification, self.magnification), dtype=float)
+            mag = np.array((self.magnification, self.magnification), dtype=float)
         if self.origin is not None:
-            orgn = numpy.array(self.origin)
+            orgn = np.array(self.origin)
         if self.x_reflection:
-            xrefl = numpy.array((1, -1))
+            xrefl = np.array((1, -1))
         if isinstance(polygons, dict):
             out_polygons = {}
             for kk in polygons.keys():
                 out_polygons[kk] = []
                 for ii in range(self.columns):
                     for jj in range(self.rows):
-                        spc = numpy.array([self.spacing[0] * ii, self.spacing[1] * jj])
+                        spc = np.array([self.spacing[0] * ii, self.spacing[1] * jj])
                         for points in polygons[kk]:
                             if self.magnification:
                                 out_polygons[kk].append(points * mag + spc)
@@ -1895,7 +1902,7 @@ class CellArray(object):
             out_polygons = []
             for ii in range(self.columns):
                 for jj in range(self.rows):
-                    spc = numpy.array([self.spacing[0] * ii, self.spacing[1] * jj])
+                    spc = np.array([self.spacing[0] * ii, self.spacing[1] * jj])
                     for points in polygons:
                         if self.magnification is not None:
                             out_polygons.append(points * mag + spc)
@@ -1964,19 +1971,19 @@ class CellArray(object):
         if not isinstance(self.ref_cell, Cell):
             return []
         if self.rotation is not None:
-            ct = numpy.cos(self.rotation * numpy.pi / 180.0)
-            st = numpy.sin(self.rotation * numpy.pi / 180.0) * _mpone
+            ct = np.cos(self.rotation * np.pi / 180.0)
+            st = np.sin(self.rotation * np.pi / 180.0) * _mpone
         if self.x_reflection:
-            xrefl = numpy.array((1, -1))
+            xrefl = np.array((1, -1))
         if self.magnification is not None:
-            mag = numpy.array((self.magnification, self.magnification), dtype=float)
+            mag = np.array((self.magnification, self.magnification), dtype=float)
         if self.origin is not None:
-            orgn = numpy.array(self.origin)
+            orgn = np.array(self.origin)
         polygonsets = self.ref_cell.get_polygonsets(depth=depth)
         array = []
         for i in range(self.columns):
             for j in range(self.rows):
-                spc = numpy.array([self.spacing[0] * i, self.spacing[1] * j])
+                spc = np.array([self.spacing[0] * i, self.spacing[1] * j])
                 for polygonset in polygonsets:
                     ps = libcopy.deepcopy(polygonset)
                     for ii in range(len(ps.polygons)):
@@ -2013,18 +2020,18 @@ class CellArray(object):
         if not isinstance(self.ref_cell, Cell):
             return []
         if self.origin is not None:
-            trans = numpy.array(self.origin)
+            trans = np.array(self.origin)
         else:
             trans = None
         if self.rotation is not None:
-            rot = self.rotation * numpy.pi / 180.0
+            rot = self.rotation * np.pi / 180.0
         else:
             rot = None
         paths = self.ref_cell.get_paths(depth=depth)
         array = []
         for i in range(self.columns):
             for j in range(self.rows):
-                spc = numpy.array([self.spacing[0] * i, self.spacing[1] * j])
+                spc = np.array([self.spacing[0] * i, self.spacing[1] * j])
                 for path in paths:
                     array.append(
                         libcopy.deepcopy(path).transform(
@@ -2054,19 +2061,19 @@ class CellArray(object):
         if not isinstance(self.ref_cell, Cell):
             return []
         if self.rotation is not None:
-            ct = numpy.cos(self.rotation * numpy.pi / 180.0)
-            st = numpy.sin(self.rotation * numpy.pi / 180.0) * _mpone
+            ct = np.cos(self.rotation * np.pi / 180.0)
+            st = np.sin(self.rotation * np.pi / 180.0) * _mpone
         if self.magnification is not None:
-            mag = numpy.array((self.magnification, self.magnification), dtype=float)
+            mag = np.array((self.magnification, self.magnification), dtype=float)
         if self.origin is not None:
-            orgn = numpy.array(self.origin)
+            orgn = np.array(self.origin)
         if self.x_reflection:
-            xrefl = numpy.array((1, -1))
+            xrefl = np.array((1, -1))
         cell_labels = self.ref_cell.get_labels(depth=depth, set_transform=set_transform)
         labels = []
         for ii in range(self.columns):
             for jj in range(self.rows):
-                spc = numpy.array([self.spacing[0] * ii, self.spacing[1] * jj])
+                spc = np.array([self.spacing[0] * ii, self.spacing[1] * jj])
                 for clbl in cell_labels:
                     lbl = libcopy.deepcopy(clbl)
                     if self.magnification is not None:
@@ -2119,8 +2126,8 @@ class CellArray(object):
         if len(polygons) == 0:
             bb = None
         else:
-            all_points = numpy.concatenate(polygons).transpose()
-            bb = numpy.array(
+            all_points = np.concatenate(polygons).transpose()
+            bb = np.array(
                 (
                     (all_points[0].min(), all_points[1].min()),
                     (all_points[0].max(), all_points[1].max()),
@@ -2723,7 +2730,7 @@ class GdsLibrary(object):
             # XY
             elif record[0] == 0x10:
                 if "xy" in kwargs:
-                    kwargs["xy"] = numpy.concatenate((kwargs["xy"], factor * record[1]))
+                    kwargs["xy"] = np.concatenate((kwargs["xy"], factor * record[1]))
                 else:
                     kwargs["xy"] = factor * record[1]
             # WIDTH
@@ -2895,8 +2902,8 @@ class GdsLibrary(object):
         kwargs["origin"] = xy[0:2]
         if "x_reflection" in kwargs:
             if "rotation" in kwargs:
-                sa = -numpy.sin(kwargs["rotation"] * numpy.pi / 180.0)
-                ca = numpy.cos(kwargs["rotation"] * numpy.pi / 180.0)
+                sa = -np.sin(kwargs["rotation"] * np.pi / 180.0)
+                ca = np.cos(kwargs["rotation"] * np.pi / 180.0)
                 x2 = (xy[2] - xy[0]) * ca - (xy[3] - xy[1]) * sa + xy[0]
                 y3 = (xy[4] - xy[0]) * sa + (xy[5] - xy[1]) * ca + xy[1]
             else:

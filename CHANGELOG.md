@@ -3,6 +3,9 @@ pygdsdesign-0.17.9
   New features:
     - Add gaussian curve in `CPWPolar`
 
+  Bug fixes:
+    - Make `read_gds` of `GdsLibrary` work again
+
 pygdsdesign-0.17.8
 
   New features:
