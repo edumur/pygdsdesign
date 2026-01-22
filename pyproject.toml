@@ -14,7 +14,7 @@ maintainers = [
 ]
 description = "pygdsdesign provides some function to more efficiently create gds files."
 readme = { file = "README.md", content-type = "text/markdown" }
-license = { file = "LICENSE,txt" }
+license-files = ["LICENSE.txt"]
 requires-python = ">=3.7"
 classifiers = [
     "Programming Language :: Python :: 3",
@@ -38,6 +38,8 @@ dev = [
 "Homepage" = "https://pypi.org/project/pygdsdesign/"
 
 [tool.setuptools]
+packages = { find = {} }
+include-package-data = true
 ext-modules = [
-  {name = "clipper", sources = ["pygdsdesign/clipper/clipper.cpp"]}
+  { name = "clipper", sources = ["pygdsdesign/clipper/clipper.cpp"] }
 ]
