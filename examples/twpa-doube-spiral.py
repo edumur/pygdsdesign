@@ -41,11 +41,16 @@ bonding_pad_length = 375
 bonding_pad_taper = 250
 
 
-twpa_length = 30000
+
+twpa_length = 140000
+twpa_line_spacing = 175
 twpa_nb_turn=7
 twpa_inner_radius = 1000
 twpa_nb_points_per_turn=5000
 twpa_link_nb_points=1001
+# Allow the spiral to stop before reaching the pad height
+# Easier pad connection
+twpa_spiral_stop = 0.99
 
 # photonic crystal
 # may contains multiple harmonics
@@ -90,80 +95,20 @@ tot = PolygonSet()
 
 
 
+### First, compute the line_spacing of the spiral that gave the desired twpa_length
 
-# ######## Bonding pad
-m = MicroStrip(width=bonding_pad_width, **layer_nbn)
-m.add_line(bonding_pad_length, 0)
-m.add_taper_cosec(bonding_pad_taper, 0, microstrip_width, 25)
-m.add_line(1, 0)
-m = merge(m)
-m.fillet(50)
-m = crop(m, 'right', 1, **layer_nbn)
-# correct crop slight error
-n = m.polygons[0][:,0].argmax()
-m.polygons[0][:,1][n]   = bonding_pad_width/2 - microstrip_width/2
-m.polygons[0][:,1][n+1] = bonding_pad_width/2 + microstrip_width/2
+# line_spacing = 200
 
-# left
-m.translate(chip_border_margin, -chip_dy/2)
-tot += m
-# save coordinates for later
-((x0, y0), (x1, y1)) = m.get_bounding_box()
-x_bp_left = x1
-y_bp_left = (y0+y1)/2
-
-# right
-m = deepcopy(m).flip('y').translate(chip_dx-2*chip_border_margin-m.get_size()[0], 0)
-tot += m
-# save coordinates for later
-((x0, y0), (x1, y1)) = m.get_bounding_box()
-x_bp_right = x0
-y_bp_right = (y0+y1)/2
-
-
-
-
-line_spacing = 200
-m = MicroStripPolar(width=5, angle=0, **layer_nbn)
-
-theta = np.linspace(0, 2*np.pi*twpa_nb_turn, twpa_nb_turn*twpa_nb_points_per_turn)
-
-# Spiral 1: from outer left → center
-r1 = twpa_inner_radius + line_spacing*2* theta / (2*np.pi)
-x1 = -r1 * np.cos(theta)
-y1 = r1 * np.sin(theta)
-
-dx1 = np.gradient(theta, x1)
-dy1 = np.gradient(theta, y1)
-
-f_dx1 = InterpolatedUnivariateSpline(theta, x1, k=1)
-f_dy1 = InterpolatedUnivariateSpline(theta, y1, k=1)
-
-spiral1_final_angle = np.angle(dx1+1j*dy1)[0]-np.pi/2
-
-spiral1_length = quad(m.curve_length, theta[0], theta[-1], args=(f_dx1, f_dy1))[0]
-
-# Spiral 2: from outer right → center
-r2 = twpa_inner_radius + line_spacing*2* theta / (2*np.pi)
-x2 = r2 * np.cos(theta)
-y2 = -r2 * np.sin(theta)
-
-dx2 = np.gradient(theta, x2)
-dy2 = np.gradient(theta, y2)
-
-f_dx2 = InterpolatedUnivariateSpline(theta, x2, k=1)
-f_dy2 = InterpolatedUnivariateSpline(theta, y2, k=1)
-
-spiral2_final_angle = np.angle(dx2+1j*dy2)[0]-np.pi/2
-
-spiral2_length = quad(m.curve_length, theta[0], theta[-1], args=(f_dx2, f_dy2))[0]
-
-
-# Connect the centers of both spirals
-start_pt = np.array([x1[0], y1[0]])  # innermost of spiral 1
-end_pt = np.array([x2[0], y2[0]])    # innermost of spiral 2
-
-def link(length, sigma, delta_angle):
+def link(
+    m,
+    spiral1_final_angle,
+    spiral2_final_angle,
+    start_pt,
+    end_pt,
+    length,
+    sigma,
+    delta_angle,
+    ):
 
     # Gaussian curve to link
     _, _, x_link_1, y_link_1 = m._get_gaussian_curve(
@@ -186,28 +131,149 @@ def link(length, sigma, delta_angle):
     )
     return x_link_1, y_link_1, x_link_2, y_link_2
 
-def func(p):
-    x_link_1, y_link_1, x_link_2, y_link_2 = link(*p)
 
-    return (x_link_1[-1]-x_link_2[-1])**2 + (y_link_1[-1] - y_link_2[-1])**2
 
-# get the optimal gaussian turn connecting the two spiral and joing perfectly in between
-# length, sigma, delta_angle
-p0 = [7.38323322e+02, 7.52601024e+02, 2.88894593e+00]
-r = minimize(func, p0)
-p0 = r.x
+def get_twpa_coordinates(
+    line_spacing,
+    only_length=False,
+    ):
 
-# Get the link coordinates
-x_link_1, y_link_1, x_link_2, y_link_2 = link(*p0)
 
-# Actual TWPA length
-total_length = spiral1_length + p0[0]*2 + spiral2_length
-print('twpa total length: {:.3f}cm'.format(total_length/1e4))
+    twpa_inner_radius = 2*line_spacing
+
+    m = MicroStripPolar(width=5, angle=0, **layer_nbn)
+
+    theta = np.linspace(0, 2*np.pi*twpa_nb_turn*twpa_spiral_stop, twpa_nb_turn*twpa_nb_points_per_turn)
+
+    # Spiral 1: from outer left → center
+    r1 = twpa_inner_radius + line_spacing*2* theta / (2*np.pi)
+    x1 = -r1 * np.cos(theta)
+    y1 = r1 * np.sin(theta)
+
+    dx1 = np.gradient(theta, x1)
+    dy1 = np.gradient(theta, y1)
+
+    f_dx1 = InterpolatedUnivariateSpline(theta, x1, k=1)
+    f_dy1 = InterpolatedUnivariateSpline(theta, y1, k=1)
+
+    spiral1_final_angle = np.angle(dx1+1j*dy1)[0]-np.pi/2
+
+    spiral1_length = quad(m.curve_length, theta[0], theta[-1], args=(f_dx1, f_dy1))[0]
+
+    # Spiral 2: from outer right → center
+    r2 = twpa_inner_radius + line_spacing*2* theta / (2*np.pi)
+    x2 = r2 * np.cos(theta)
+    y2 = -r2 * np.sin(theta)
+
+    dx2 = np.gradient(theta, x2)
+    dy2 = np.gradient(theta, y2)
+
+    f_dx2 = InterpolatedUnivariateSpline(theta, x2, k=1)
+    f_dy2 = InterpolatedUnivariateSpline(theta, y2, k=1)
+
+    spiral2_final_angle = np.angle(dx2+1j*dy2)[0]-np.pi/2
+
+    spiral2_length = quad(m.curve_length, theta[0], theta[-1], args=(f_dx2, f_dy2))[0]
+
+    # Connect the centers of both spirals
+    start_pt = np.array([x1[0], y1[0]])  # innermost of spiral 1
+    end_pt = np.array([x2[0], y2[0]])    # innermost of spiral 2
+
+    def func_link(
+        p,
+        m,
+        spiral1_final_angle,
+        spiral2_final_angle,
+        start_pt,
+        end_pt,
+        ):
+        x_link_1, y_link_1, x_link_2, y_link_2 = link(
+            m,
+            spiral1_final_angle,
+            spiral2_final_angle,
+            start_pt,
+            end_pt,
+            *p,
+            )
+
+        return (x_link_1[-1]-x_link_2[-1])**2 + (y_link_1[-1] - y_link_2[-1])**2
+
+    # get the optimal gaussian turn connecting the two spiral and joing perfectly in between
+    # length, sigma, delta_angle
+    p0 = [7.38323322e+02, 7.52601024e+02, 2.88894593e+00]
+    r = minimize(func_link, p0, args=(
+        m,
+        spiral1_final_angle,
+        spiral2_final_angle,
+        start_pt,
+        end_pt,
+        ))
+    # p0 = r.x
+
+    # Get the link coordinates
+    x_link_1, y_link_1, x_link_2, y_link_2 = link(
+        m,
+        spiral1_final_angle,
+        spiral2_final_angle,
+        start_pt,
+        end_pt,
+        *r.x,
+        )
+
+    # Get the twpa coordinates
+    # here, the points along the curve (called arc length) are not equidistant
+    x_tot = np.concatenate((x1[::-1][:-1], x_link_1[:-1], x_link_2[::-1][:-1], x2))
+    y_tot = np.concatenate((y1[::-1][:-1], y_link_1[:-1], y_link_2[::-1][:-1], y2))
+    # Get the link coordinates
+    if only_length:
+        return spiral1_length + r.x[0]*2 + spiral2_length
+    else:
+        return x_tot, y_tot
+
+    # Actual TWPA length
+    # print('twpa total length: {:.3f}cm'.format(total_length/1e4))
+
+def func_twpa_length(
+    p,
+    target_length,
+    ):
+
+    (line_spacing) = p
+    twpa_inner_radius = 2*line_spacing
+    current_length = get_twpa_coordinates(
+        line_spacing=line_spacing,
+        only_length=True,
+        )
+
+    cost = (current_length - target_length)**2
+    # print(line_spacing, twpa_inner_radius, current_length/1e4, target_length/1e4, cost)
+    return cost
+
+# r = minimize_scalar(func_twpa_length, args=(
+#     twpa_length
+#     ))
+
+
+r = minimize(
+    func_twpa_length,
+    x0=[twpa_line_spacing],
+    bounds=[(5, 250)],
+    args=(
+        twpa_length,
+    ),
+    # tol=0.01,
+    method='Powell',
+    )
+
+(twpa_line_spacing) = r.x
+
+#### Second, build the spiral
 
 # Get the twpa coordinates
 # here, the points along the curve (called arc length) are not equidistant
-x_tot = np.concatenate((x1[::-1][:-1], x_link_1[:-1], x_link_2[::-1][:-1], x2))
-y_tot = np.concatenate((y1[::-1][:-1], y_link_1[:-1], y_link_2[::-1][:-1], y2))
+x_tot, y_tot = get_twpa_coordinates(twpa_line_spacing, False)
+current_twpa_length = get_twpa_coordinates(twpa_line_spacing, True)
+print('TWPA length: {:.3f} cm'.format(current_twpa_length/1e4))
 
 # resample it at equal arc-length intervals.
 # 1. Compute the cumulative distance (arc length) along the curve
@@ -217,7 +283,7 @@ dist = np.sqrt(dx**2 + dy**2)
 # cumulative distance array
 s = np.concatenate(([0], np.cumsum(dist)))
 # for example, how many equidistant points you want
-s_uniform = np.linspace(0, total_length, len(x_tot))
+s_uniform = np.linspace(0, current_twpa_length, len(x_tot))
 
 # 3. Interpolate x and y as functions of the arc length
 x_interp = InterpolatedUnivariateSpline(s, x_tot)
@@ -273,7 +339,51 @@ twpa = PolygonSet(
 ).translate(chip_dx/2, -chip_dy/2)
 
 
-###### link between left pad and twpa
+
+
+
+
+
+
+
+####### Third,  Bonding pad
+
+m = MicroStrip(width=bonding_pad_width, **layer_nbn)
+m.add_line(bonding_pad_length, 0)
+m.add_taper_cosec(bonding_pad_taper, 0, microstrip_width, 25)
+m.add_line(1, 0)
+m = merge(m)
+m.fillet(50)
+m = crop(m, 'right', 1, **layer_nbn)
+# correct crop slight error
+n = m.polygons[0][:,0].argmax()
+m.polygons[0][:,1][n]   = bonding_pad_width/2 - microstrip_width/2
+m.polygons[0][:,1][n+1] = bonding_pad_width/2 + microstrip_width/2
+
+# left
+m.translate(chip_border_margin, -chip_dy/2)
+tot += m
+# save coordinates for later
+((x0, y0), (x1, y1)) = m.get_bounding_box()
+x_bp_left = x1
+y_bp_left = (y0+y1)/2
+
+# right
+m = deepcopy(m).flip('y').translate(chip_dx-2*chip_border_margin-m.get_size()[0], 0)
+tot += m
+# save coordinates for later
+((x0, y0), (x1, y1)) = m.get_bounding_box()
+x_bp_right = x0
+y_bp_right = (y0+y1)/2
+
+
+
+
+
+
+
+
+###### 4. link between left pad and twpa
 
 # find info of the beginning of the twpa
 x = np.array([twpa.polygons[0][:,0][0], twpa.polygons[0][:,0][-1]])
@@ -328,7 +438,7 @@ tot += m
 
 
 
-###### link between right pad and twpa
+###### 6. link between right pad and twpa
 
 # find info of the beginning of the twpa
 n = int(len(twpa.polygons[0][:,0])/2)
@@ -341,7 +451,7 @@ dy = np.gradient(y, s)
 theta = np.angle(dx + 1j*dy)
 
 # find best length and angle
-def link_bp_right_twpa(length_straight1, length_curve1, angle1, length_curve2, angle2, length_straight3):
+def link_bp_right_twpa(length_curve, angle, length_straight1, length_straight2):
     m = MicroStripPolar(
         width=w,
         angle=theta[0]+np.pi/2,
@@ -349,12 +459,8 @@ def link_bp_right_twpa(length_straight1, length_curve1, angle1, length_curve2, a
             (twpa.polygons[0][:,1][n-1]+twpa.polygons[0][:,1][n])/2),
         **layer_nbn)
     m.add_line(length_straight1)
-    # m.add_line(length_straight1)
-    m.add_gaussian_turn(length_curve1, -angle1)
-    m.add_gaussian_turn(length_curve2, -angle2)
-    m.add_gaussian_turn(length_curve2, angle2)
-    m.add_taper_arctan(length_straight3, microstrip_width)
-
+    m.add_gaussian_turn(length_curve, angle)
+    m.add_taper_arctan(length_straight2, microstrip_width)
     return m
 
 def func(p):
@@ -364,7 +470,7 @@ def func(p):
         + (m._angle)**2
     return res
 
-p = [10, 140, theta[0]+np.pi/2, 130, theta[0]+np.pi/2, 40]
+p = [131.4746306, 1.55330966, 74.50268882, 197.0038111]
 r = minimize(func, p)
 p = r.x
 # print(p)
