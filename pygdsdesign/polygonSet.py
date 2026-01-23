@@ -21,6 +21,16 @@ class PolygonSet():
                        colors: List[str]=None,
                        **kwargs) -> None:
 
+        # Check type
+        if not isinstance(layers, list):
+            raise TypeError('"layers" argument must be of type list[int], received type {}'.format(type(layers)))
+        if not isinstance(datatypes, list):
+            raise TypeError('"datatypes" argument must be of type list[int], received type {}'.format(type(datatypes)))
+        if not isinstance(names, list):
+            raise TypeError('"names" argument must be of type list[str], received type {}'.format(type(names)))
+        if not isinstance(colors, list):
+            raise TypeError('"colors" argument must be of type list[str], received type {}'.format(type(colors)))
+
         # Getting rid of the mutability of python's default arguments
         if polygons is None:
             polygons = [np.array([[0., 0.]])]
@@ -32,6 +42,7 @@ class PolygonSet():
             names = ['']
         if colors is None:
             colors = ['']
+
 
         self.polygons: List[np.ndarray] = [np.asarray(p) for p in polygons]
         self.layers: List[int] = layers
