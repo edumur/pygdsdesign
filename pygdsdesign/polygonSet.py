@@ -1,4 +1,4 @@
-from typing import List, Literal, Optional, Dict, Tuple, Self
+from typing import Literal, Self
 import numpy as np
 import struct
 import warnings
@@ -14,11 +14,11 @@ class PolygonSet():
 
     __slots__ = "layers", "datatypes", "polygons", "properties", "names", "colors"
 
-    def __init__(self, polygons: Coordinates=None,
-                       layers: List[int]=None,
-                       datatypes: List[int]=None,
-                       names: List[str]=None,
-                       colors: List[str]=None,
+    def __init__(self, polygons: Coordinates | None=None,
+                       layers: list[int] | None=None,
+                       datatypes: list[int] | None=None,
+                       names: list[str] | None=None,
+                       colors: list[str] | None=None,
                        **kwargs) -> None:
 
         # Check type
@@ -44,11 +44,11 @@ class PolygonSet():
             colors = ['']
 
 
-        self.polygons: List[np.ndarray] = [np.asarray(p) for p in polygons]
-        self.layers: List[int] = layers
-        self.datatypes: List[int] = datatypes
-        self.names: List[str]  = names
-        self.colors: List[str] = colors
+        self.polygons: list[np.ndarray] = [np.asarray(p) for p in polygons]
+        self.layers: list[int] = layers
+        self.datatypes: list[int] = datatypes
+        self.names: list[str]  = names
+        self.colors: list[str] = colors
         self.properties = {}
 
         # to keep retrop-compatibility with "layer" old attribute
@@ -130,7 +130,7 @@ class PolygonSet():
         )
 
 
-    def get_area(self, by_spec=False) -> float | Dict[Tuple[int, int], float]:
+    def get_area(self, by_spec=False) -> float | dict[tuple[int, int], float]:
         """
         Calculate the total area of this polygon set.
 
@@ -179,7 +179,7 @@ class PolygonSet():
         return (a[0]+b[0])/2., (a[1]+b[1])/2.
 
 
-    def get_bounding_box(self) -> Optional[Tuple[Coordinate, Coordinate]]:
+    def get_bounding_box(self) -> tuple[Coordinate, Coordinate] | None:
         """
         Calculate the bounding box of the polygons.
 
@@ -269,8 +269,8 @@ class PolygonSet():
 
 
     def scale(self, scalex: float,
-                    scaley: Optional[float]=None,
-                    center: Tuple[float, float]=(0., 0.)) -> Self:
+                    scaley: float | None=None,
+                    center: tuple[float, float]=(0., 0.)) -> Self:
         """
         Scale this object.
 
@@ -436,8 +436,8 @@ class PolygonSet():
                 outfile.write(struct.pack(">2H", 4, 0x1100))
 
 
-    def mirror(self, p1: Tuple[float, float],
-                     p2: Tuple[float, float]=(0, 0)) -> Self:
+    def mirror(self, p1: tuple[float, float],
+                     p2: tuple[float, float]=(0, 0)) -> Self:
         """
         Mirror the polygons over a line through points 1 and 2
 
@@ -646,10 +646,10 @@ class PolygonSet():
         return self
 
 
-    def change_layer(self, layer: Optional[int]=None,
-                           datatype: Optional[int]=None,
-                           color: Optional[str]=None,
-                           name: Optional[str] = None) -> Self:
+    def change_layer(self, layer: int | None=None,
+                           datatype: int | None=None,
+                           color: str | None=None,
+                           name: str | None = None) -> Self:
         """
         Change the layer properties of the polygons.
         Only given parameters will be updated in the polygon layer, all the other
