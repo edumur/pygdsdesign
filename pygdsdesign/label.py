@@ -116,7 +116,7 @@ class Label(object):
         self.anchor = Label._anchor.get(anchor.lower(), None)
         if self.anchor is None:
             raise ValueError(
-                "[GDSPY] Label anchors must be one of: '"
+                "[pygdsdesign] Label anchors must be one of: '"
                 + "', '".join(Label._anchor.keys())
                 + "'."
             )
@@ -228,7 +228,7 @@ class Label(object):
                 size += len(value) + 2
             if size > 128:
                 warnings.warn(
-                    "[GDSPY] Properties with size larger than 128 bytes are not "
+                    "[pygdsdesign] Properties with size larger than 128 bytes are not "
                     "officially supported by the GDSII specification.  This file "
                     "might not be compatible with all readers.",
                     stacklevel=4,

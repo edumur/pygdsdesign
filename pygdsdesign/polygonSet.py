@@ -1,4 +1,5 @@
 from typing import Literal, Self
+from numpy.typing import NDArray
 import numpy as np
 import struct
 import warnings
@@ -8,7 +9,7 @@ from io import IOBase
 
 
 from pygdsdesign.typing_local import Coordinate, Coordinates
-
+from pygdsdesign import clipper
 
 class PolygonSet():
 
@@ -44,7 +45,7 @@ class PolygonSet():
             colors = ['']
 
 
-        self.polygons: list[np.ndarray] = [np.asarray(p) for p in polygons]
+        self.polygons: list[NDArray] = [np.asarray(p) for p in polygons]
         self.layers: list[int] = layers
         self.datatypes: list[int] = datatypes
         self.names: list[str]  = names
@@ -169,17 +170,20 @@ class PolygonSet():
         return path_area
 
 
-    def get_center(self) -> Coordinate:
+    def get_center(self) -> Coordinate | None:
         """
         Return the center of the polygon.
         """
 
-        a, b = self.get_bounding_box()
+        temp = self.get_bounding_box()
 
-        return (a[0]+b[0])/2., (a[1]+b[1])/2.
+        if temp is None:
+            return None
+        else:
+            return (temp[0][0]+temp[1][0])/2., (temp[0][1]+temp[1][1])/2.
 
 
-    def get_bounding_box(self) -> tuple[Coordinate, Coordinate] | None:
+    def get_bounding_box(self) -> NDArray[np.number] | None:
         """
         Calculate the bounding box of the polygons.
 
@@ -204,13 +208,17 @@ class PolygonSet():
         return np.array([[min_x, min_y], [max_x, max_y]])
 
 
-    def get_size(self) -> Coordinate:
+    def get_size(self) -> Coordinate | None:
         """
         Return the size the polygon as length along (x, y).
         """
 
-        a, b = self.get_bounding_box()
-        return b[0]-a[0],  b[1]-a[1]
+        temp = self.get_bounding_box()
+
+        if temp is None:
+            return None
+        else:
+            return temp[1][0]-temp[0][0],  temp[1][1]-temp[0][1]
 
 
     def rotate(self, angle: float,
@@ -300,8 +308,13 @@ class PolygonSet():
         Centered the polygon to (0, 0).
         """
 
-        x0, y0 = self.get_center()
-        self.translate(-x0, -y0)
+        temp = self.get_center()
+        if temp is None:
+            warnings.warn("[pygdsdesign] You try to 'center' on a empty polygonSet."
+                          "The polygon was not moved.", stacklevel=4,)
+        else:
+            x0, y0 = temp
+            self.translate(-x0, -y0)
 
         return self
 
@@ -315,18 +328,22 @@ class PolygonSet():
         axis : float
             Central axis of the flip.
         """
-
-        x0, y0 = self.get_center()
-        self.translate(-x0, -y0)
-
-        if axis.lower()=='x':
-            self.polygons = [np.vstack((p[:, 0], p[:, 1]*-1)).T for p in self.polygons]
-        elif axis.lower()=='y':
-            self.polygons = [np.vstack((p[:, 0]*-1, p[:, 1])).T for p in self.polygons]
+        temp = self.get_center()
+        if temp is None:
+            warnings.warn("[pygdsdesign] You try to 'flip' on a empty polygonSet."
+                          "The polygon was not fliped.", stacklevel=4,)
         else:
-            raise ValueError('axis must be "x", "y"')
+            x0, y0 = temp
+            self.translate(-x0, -y0)
 
-        self.translate(x0, y0)
+            if axis.lower()=='x':
+                self.polygons = [np.vstack((p[:, 0], p[:, 1]*-1)).T for p in self.polygons]
+            elif axis.lower()=='y':
+                self.polygons = [np.vstack((p[:, 0]*-1, p[:, 1])).T for p in self.polygons]
+            else:
+                raise ValueError('axis must be "x", "y"')
+
+            self.translate(x0, y0)
 
         return self
 
@@ -526,7 +543,7 @@ class PolygonSet():
         return self
 
 
-    def fillet(self, radius: float|np.ndarray|list,
+    def fillet(self, radius: float|NDArray|list,
                      points_per_2pi: int=128) -> Self:
         """
         Round the corners of these polygons and fractures them into
@@ -559,7 +576,7 @@ class PolygonSet():
         if np.isscalar(radius):
             radii = [[radius] * p.shape[0] for p in self.polygons]
         else:
-            assert isinstance(radius, np.ndarray)
+            assert isinstance(radius, NDArray)
             if len(radius) == len(self.polygons):
                 radii = []
                 for r, p in zip(radius, self.polygons):
@@ -568,7 +585,7 @@ class PolygonSet():
                     else:
                         if len(r) != p.shape[0]:
                             raise ValueError(
-                                "[GDSPY] Wrong length in fillet radius list.  "
+                                "[pygdsdesign] Wrong length in fillet radius list.  "
                                 "Found {} radii for polygon with {} vertices.".format(
                                     len(r), len(p.shape[0])
                                 )
@@ -578,7 +595,7 @@ class PolygonSet():
                 total = sum(p.shape[0] for p in self.polygons)
                 if len(radius) != total:
                     raise ValueError(
-                        "[GDSPY] Wrong length in fillet radius list.  "
+                        "[pygdsdesign] Wrong length in fillet radius list.  "
                         "Expected lengths are {} or {}; got {}.".format(
                             len(self.polygons), total, len(radius)
                         )

@@ -330,7 +330,7 @@ class FlexPath(object):
         if self.gdsii_path:
             if any(end == "smooth" or callable(end) for end in self.ends):
                 warnings.warn(
-                    "[GDSPY] Smooth and custom end caps are not supported "
+                    "[pygdsdesign] Smooth and custom end caps are not supported "
                     "in `FlexPath` with `gdsii_path == True`.",
                     stacklevel=3,
                 )
@@ -339,7 +339,7 @@ class FlexPath(object):
                 for corner in self.corners
             ):
                 warnings.warn(
-                    "[GDSPY] Corner specification not supported in "
+                    "[pygdsdesign] Corner specification not supported in "
                     "`FlexPath` with `gdsii_path == True`.",
                     stacklevel=3,
                 )
@@ -581,7 +581,7 @@ class FlexPath(object):
                         u1 = (vn[:-1, 1] * ds[:, 0] - vn[:-1, 0] * ds[:, 1]) / den
                         if any(u0 < -1) or any(u1 > 1):
                             warnings.warn(
-                                "[GDSPY] Possible inconsistency found in "
+                                "[pygdsdesign] Possible inconsistency found in "
                                 "`FlexPath` due to sharp corner."
                             )
                         pts[1:-1] = sb[:-1] + u0.reshape((u0.shape[0], 1)) * vn[:-1]
@@ -1054,7 +1054,7 @@ class FlexPath(object):
             points = np.round(points * multiplier).astype(">i4")
             if points.shape[0] > 8191:
                 warnings.warn(
-                    "[GDSPY] Paths with more than 8191 are not supported "
+                    "[pygdsdesign] Paths with more than 8191 are not supported "
                     "by the official GDSII specification.  This GDSII "
                     "file might not be compatible with all readers.",
                     stacklevel=4,
@@ -1080,7 +1080,7 @@ class FlexPath(object):
                     size += len(value) + 2
                 if size > 128:
                     warnings.warn(
-                        "[GDSPY] Properties with size larger than 128 bytes are not "
+                        "[pygdsdesign] Properties with size larger than 128 bytes are not "
                         "officially supported by the GDSII specification.  This file "
                         "might not be compatible with all readers.",
                         stacklevel=4,
@@ -1440,7 +1440,7 @@ class FlexPath(object):
         self._polygon_dict = None
         if self.points.shape[0] < 2:
             raise ValueError(
-                "[GDSPY] Cannot define initial angle for turn on a "
+                "[pygdsdesign] Cannot define initial angle for turn on a "
                 "FlexPath withouth previous segments."
             )
         v = self.points[-1] - self.points[-2]
@@ -1829,7 +1829,7 @@ class RobustPath(object):
         self.properties = {}
         if self.gdsii_path and any(end == "smooth" for end in self.ends):
             warnings.warn(
-                "[GDSPY] Smooth end caps not supported in `RobustPath` "
+                "[pygdsdesign] Smooth end caps not supported in `RobustPath` "
                 "with `gdsii_path == True`.",
                 stacklevel=3,
             )
@@ -2044,7 +2044,7 @@ class RobustPath(object):
                             while err > tol:
                                 iters += 1
                                 if iters > self.max_evals:
-                                    warnings.warn("[GDSPY] Intersection not found.")
+                                    warnings.warn("[pygdsdesign] Intersection not found.")
                                     break
                                 du = delta * sub0.grad(u0, arm)
                                 new_u0 = min(1, max(0, u0 - step * (du[0] + du[1])))
@@ -2066,7 +2066,7 @@ class RobustPath(object):
                             else:
                                 path_arm.extend(sub0.points(start, 1, arm))
                                 warnings.warn(
-                                    "[GDSPY] RobustPath join at ({}, {}) cannot be ensured.  "
+                                    "[pygdsdesign] RobustPath join at ({}, {}) cannot be ensured.  "
                                     "Please check the resulting polygon.".format(
                                         path_arm[-1][0], path_arm[-1][1]
                                     ),
@@ -2077,7 +2077,7 @@ class RobustPath(object):
                             if u0 <= 1:
                                 path_arm.extend(sub0.points(start, u0, arm))
                                 warnings.warn(
-                                    "[GDSPY] RobustPath join at ({}, {}) cannot be ensured.  "
+                                    "[pygdsdesign] RobustPath join at ({}, {}) cannot be ensured.  "
                                     "Please check the resulting polygon.".format(
                                         path_arm[-1][0], path_arm[-1][1]
                                     ),
@@ -2242,7 +2242,7 @@ class RobustPath(object):
                     while err > tol:
                         iters += 1
                         if iters > self.max_evals:
-                            warnings.warn("[GDSPY] Intersection not found.")
+                            warnings.warn("[pygdsdesign] Intersection not found.")
                             break
                         du = delta * sub0.grad(u0, 0)
                         new_u0 = min(1, max(0, u0 - step * (du[0] + du[1])))
@@ -2264,7 +2264,7 @@ class RobustPath(object):
                     else:
                         points.extend(sub0.points(start, 1, 0))
                         warnings.warn(
-                            "[GDSPY] RobustPath join at ({}, {}) cannot be ensured.  "
+                            "[pygdsdesign] RobustPath join at ({}, {}) cannot be ensured.  "
                             "Please check the resulting polygon.".format(
                                 points[-1][0], points[-1][1]
                             ),
@@ -2275,7 +2275,7 @@ class RobustPath(object):
                     if u0 <= 1:
                         points.extend(sub0.points(start, u0, 0))
                         warnings.warn(
-                            "[GDSPY] RobustPath join at ({}, {}) cannot be ensured.  "
+                            "[pygdsdesign] RobustPath join at ({}, {}) cannot be ensured.  "
                             "Please check the resulting polygon.".format(
                                 points[-1][0], points[-1][1]
                             ),
@@ -2289,7 +2289,7 @@ class RobustPath(object):
             points = (np.array(points) * multiplier).astype(">i4")
             if points.shape[0] > 8191:
                 warnings.warn(
-                    "[GDSPY] Paths with more than 8191 are not supported "
+                    "[pygdsdesign] Paths with more than 8191 are not supported "
                     "by the official GDSII specification.  This GDSII "
                     "file might not be compatible with all readers.",
                     stacklevel=4,
@@ -2315,7 +2315,7 @@ class RobustPath(object):
                     size += len(value) + 2
                 if size > 128:
                     warnings.warn(
-                        "[GDSPY] Properties with size larger than 128 bytes are not "
+                        "[pygdsdesign] Properties with size larger than 128 bytes are not "
                         "officially supported by the GDSII specification.  This file "
                         "might not be compatible with all readers.",
                         stacklevel=4,
@@ -2539,7 +2539,7 @@ class RobustPath(object):
         if arg is None or self.gdsii_path:
             if arg is not None:
                 warnings.warn(
-                    "[GDSPY] Argument `width` ignored in RobustPath with "
+                    "[pygdsdesign] Argument `width` ignored in RobustPath with "
                     "`gdsii_path == True`.",
                     stacklevel=3,
                 )
@@ -2703,7 +2703,7 @@ class RobustPath(object):
         i = len(self.paths[0]) - 1
         if i < 0:
             raise ValueError(
-                "[GDSPY] Cannot define initial angle for turn on an "
+                "[pygdsdesign] Cannot define initial angle for turn on an "
                 "empty RobustPath."
             )
         angle = _angle_dict.get(angle, angle)
