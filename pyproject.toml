@@ -15,7 +15,7 @@ maintainers = [
 description = "pygdsdesign provides some function to more efficiently create gds files."
 readme = { file = "README.md", content-type = "text/markdown" }
 license-files = ["LICENSE.txt"]
-requires-python = ">=3.7"
+requires-python = ">=3.11"
 classifiers = [
     "Programming Language :: Python :: 3",
     "Intended Audience :: Science/Research",
@@ -26,7 +26,6 @@ dependencies = [
     "numpy",
     "scipy",
     "tqdm",
-    "typing_extensions",
 ]
 
 [project.optional-dependencies]

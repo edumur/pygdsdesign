@@ -42,11 +42,6 @@ class Cell(object):
     """
     Collection of polygons, paths, labels and raferences to other cells.
 
-    .. deprecated:: 1.5
-       The parameter `exclude_from_current` has been deprecated
-       alongside the use of a global library.  It will be removed in a
-       future version of Gdspy.
-
     Parameters
     ----------
     name : string
@@ -76,7 +71,7 @@ class Cell(object):
         "_bounding_box",
     )
 
-    def __init__(self, name, exclude_from_current=False, overwrite_duplicate=False):
+    def __init__(self, name, overwrite_duplicate=False):
         self.name = name
         self.polygons = []
         self.paths = []
@@ -84,8 +79,6 @@ class Cell(object):
         self.references = []
         self._bb_valid = False
         self._bounding_box = None
-        #if library.use_current_library and not exclude_from_current:
-            #library.current_library.add(self, include_dependencies=False, overwrite_duplicate=overwrite_duplicate)
 
     def __str__(self):
         return 'Cell ("{}", {} polygons, {} paths, {} labels, {} references)'.format(
@@ -2806,7 +2799,7 @@ class GdsLibrary(object):
                     name = rename[record[1]]
                 else:
                     name = rename_template.format(name=record[1])
-                cell = Cell(name, exclude_from_current=True)
+                cell = Cell(name)
                 if name in self.cells:
                     raise ValueError("[pygdsdesign] Multiple cells with name: {0} in GDSII file".format(name))
                 self.cells[name] = cell
@@ -3029,45 +3022,6 @@ class GdsLibrary(object):
                     ref.ref_cell = new_cell
                     replacements += 1
         return replacements
-
-    def extract(self, cell, overwrite_duplicate=False):
-        """
-        Extract a cell from the this GDSII file and include it in the
-        current global library, including referenced dependencies.
-
-        .. deprecated:: 1.5
-           `extract` is deprecated and will be removed in a future
-           version of Gdspy.  Gdspy no longer uses a global library.
-
-        Parameters
-        ----------
-        cell : `Cell` or string
-            Cell or name of the cell to be extracted from the imported
-            file.  Referenced cells will be automatically extracted as
-            well.
-        overwrite_duplicate : bool
-            If True an existing cell with the same name in the current
-            global library will be overwritten.
-        Returns
-        -------
-        out : `Cell`
-            The extracted cell.
-        Notes
-        -----
-        `CellReference` or `CellArray` instances that referred to an
-        overwritten cell are not automatically updated.
-        """
-        warnings.warn(
-            "[pygdsdesign] extract and the use of the global library is deprecated.",
-            category=DeprecationWarning,
-            stacklevel=2,
-        )
-
-        cell = self.cells.get(cell, cell)
-        current_library.add(
-            cell, include_dependencies=True, overwrite_duplicate=overwrite_duplicate
-        )
-        return cell
 
 
 class GdsWriter(object):

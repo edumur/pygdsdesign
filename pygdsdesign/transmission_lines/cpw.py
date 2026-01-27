@@ -1,11 +1,10 @@
 import copy
 import warnings
 from functools import partial
-from typing import Callable, Dict, Optional, Tuple, Union
+from typing import Callable, Dict, Optional, Tuple, Union, Literal
 
 import numpy as np
 from scipy.integrate import quad
-from typing_extensions import Literal
 
 from pygdsdesign.polygons import Rectangle
 from pygdsdesign.polygonSet import PolygonSet

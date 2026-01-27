@@ -1,8 +1,7 @@
 from functools import partial
 import numpy as np
 from copy import deepcopy
-from typing import Callable, Tuple, Optional, Dict, Union
-from typing_extensions import Literal
+from typing import Callable, Tuple, Optional, Dict, Union, Literal
 from scipy.integrate import quad
 from scipy.interpolate import interp1d
 from tqdm import tqdm

@@ -56,7 +56,7 @@ class Label(object):
 
     Examples
     --------
-    >>> label = gdspy.Label('Sample label', (10, 0), 'sw')
+    >>> label = pygdsdesign.Label('Sample label', (10, 0), 'sw')
     >>> myCell.add(label)
     """
 
@@ -298,7 +298,7 @@ class Label(object):
 
         Examples
         --------
-        >>> text = gdspy.Label((0, 0), (10, 20))
+        >>> text = pygdsdesign.Label((0, 0), (10, 20))
         >>> text = text.translate(2, 0)
         >>> myCell.add(text)
         """
