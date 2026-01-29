@@ -4,7 +4,7 @@ import warnings
 import itertools
 import struct
 
-from pygdsdesign import clipper
+import clipper
 from pygdsdesign.polygonSet import PolygonSet
 from pygdsdesign.functions import hobby
 

@@ -1,3 +1,8 @@
+pygdsdesign-0.17.10
+
+  New features:
+    - Add `snap` operation and `snap_to` method to `polygonSet`
+
 pygdsdesign-0.17.9
 
   New features:

@@ -9,7 +9,7 @@ from typing import (
     Optional,
 )
 import warnings
-import copy as libcopy
+from copy import deepcopy
 import numpy as np
 from scipy.interpolate import interp1d
 
@@ -779,7 +779,7 @@ def copy(obj: Any,
     >>> myCell.add(rectangle2)
     """
 
-    newObj = libcopy.deepcopy(obj)
+    newObj = deepcopy(obj)
     if dx != 0 or dy != 0:
         newObj.translate(dx, dy)
     return newObj
@@ -915,3 +915,128 @@ def replace_by_photonic_crystal(microstrip: MicroStrip,
                         colors=[structure._color]).translate(structure.param_curve[0][0], structure.param_curve[0][1])
 
     return poly
+
+
+def snap(
+    p1: PolygonSet,
+    port1: int,
+    p2: PolygonSet,
+    port2: int,
+    show_port: bool=False,
+    merging: bool=False,
+    ) -> PolygonSet:
+
+    """
+    Snap polygon `p2` onto polygon `p1` by aligning two polygon edges
+    (called ports).
+    Only the first polygon of each polygonSet is considered.
+
+    Each port is defined by an edge of the first polygon in the corresponding
+    PolygonSet. The snapping procedure:
+      1. Computes the midpoint of each port edge.
+      2. Determines the inward-pointing normal direction of each port.
+      3. Rotates `p2` so that its port normal faces opposite to `p1`'s port normal.
+      4. Translates `p2` so that both port midpoints coincide.
+
+    Optionally, the resulting polygons can be merged and/or visualized with
+    arrow markers indicating port directions.
+
+    Parameters
+    ----------
+    p1 : PolygonSet
+        Reference polygon set. `p2` will be snapped onto this polygon set.
+    port1 : int
+        Index of the edge (port) in `p1.polygons[0]` used as the snapping target.
+    p2 : PolygonSet
+        Polygon set to be transformed and snapped onto `p1`.
+    port2 : int
+        Index of the edge (port) in `p2.polygons[0]` used for snapping.
+    show_port : bool, optional
+        If True, draw arrow markers indicating the port directions after snapping.
+        Useful for debugging geometry and orientation.
+    merging : bool, optional
+        If True, merge the resulting polygon sets into a single PolygonSet.
+        Otherwise, return their union without merging.
+
+    Returns
+    -------
+    PolygonSet
+        A new PolygonSet containing `p1` and the transformed `p2`, snapped
+        together along the specified ports.
+    """
+
+
+    p1 = deepcopy(p1)
+    p2 = deepcopy(p2)
+
+    # Find port 1 center
+    x0 = p1.polygons[0][port1][0]
+    x1 = p1.polygons[0][port1+1][0]
+    xc1 = (x1 + x0)/2
+
+    y0 = p1.polygons[0][port1][1]
+    y1 = p1.polygons[0][port1+1][1]
+    yc1 = (y1 + y0)/2
+
+    # Find port 1 angle
+    theta1 = np.angle((x1 - x0) + 1j*(y1-y0))
+    if p1.is_angle_pointing_inside(0, port1, theta1 + np.pi/2):
+        dtheta1 = theta1 - np.pi/2
+    else:
+        dtheta1 = theta1 + np.pi/2
+
+    # Find port 2 center
+    x0 = p2.polygons[0][port2][0]
+    x1 = p2.polygons[0][port2+1][0]
+    xc2 = (x1 + x0)/2
+
+    y0 = p2.polygons[0][port2][1]
+    y1 = p2.polygons[0][port2+1][1]
+    yc2 = (y1 + y0)/2
+
+    # Find port 2 angle
+    theta2 = np.angle((x1 - x0) + 1j*(y1-y0))
+    if p2.is_angle_pointing_inside(0, port2, theta2 + np.pi/2):
+        dtheta2 = theta2 - np.pi/2
+    else:
+        dtheta2 = theta2 + np.pi/2
+
+    # Move p2
+    p2.rotate(np.pi-dtheta2+dtheta1, center=(xc2, yc2))\
+      .translate(xc1-xc2, yc1-yc2)
+
+    if merging:
+        p_out = merge(p1 + p2)
+    else:
+        p_out = p1 + p2
+
+    # Add arrow on ports to help the snapping process
+    if show_port:
+
+        # Make arrow
+        tail_w = 4
+        tail_l = 10
+        head_w = 6
+        head_l = 4
+        arrow = PolygonSet([np.array([0,0])])
+        arrow > (0, -tail_w/2)
+        arrow > (tail_l, 0)
+        arrow > (0, -(head_w-tail_w))
+        arrow > (head_l, tail_w/2+(head_w-tail_w))
+        arrow > (-head_l, tail_w/2+(head_w-tail_w))
+        arrow > (0, -(head_w-tail_w))
+        arrow > (-tail_l, 0)
+
+        # Add arrow to p1 and p2 with correct layers
+        p_out += deepcopy(arrow)\
+                .change_layer(layer=p1.layers[0]+1)\
+                .rotate(dtheta1)\
+                .translate(xc1, yc1)
+        p_out += deepcopy(arrow)\
+                .change_layer(layer=p2.layers[0]+1)\
+                .rotate(dtheta2)\
+                .translate(xc2, yc2)\
+                .rotate(np.pi-dtheta2+dtheta1, center=(xc2, yc2))\
+                .translate(xc1-xc2, yc1-yc2)
+
+    return p_out

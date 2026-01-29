@@ -1,4 +1,5 @@
 from typing import Literal, Self
+from copy import deepcopy
 from numpy.typing import NDArray
 import numpy as np
 import struct
@@ -9,7 +10,7 @@ from io import IOBase
 
 
 from pygdsdesign.typing_local import Coordinate, Coordinates
-from pygdsdesign import clipper
+import clipper
 
 class PolygonSet():
 
@@ -22,16 +23,6 @@ class PolygonSet():
                        colors: list[str] | None=None,
                        **kwargs) -> None:
 
-        # Check type
-        if not isinstance(layers, list):
-            raise TypeError('"layers" argument must be of type list[int], received type {}'.format(type(layers)))
-        if not isinstance(datatypes, list):
-            raise TypeError('"datatypes" argument must be of type list[int], received type {}'.format(type(datatypes)))
-        if not isinstance(names, list):
-            raise TypeError('"names" argument must be of type list[str], received type {}'.format(type(names)))
-        if not isinstance(colors, list):
-            raise TypeError('"colors" argument must be of type list[str], received type {}'.format(type(colors)))
-
         # Getting rid of the mutability of python's default arguments
         if polygons is None:
             polygons = [np.array([[0., 0.]])]
@@ -43,6 +34,16 @@ class PolygonSet():
             names = ['']
         if colors is None:
             colors = ['']
+
+        # Check type
+        if not isinstance(layers, list):
+            raise TypeError('"layers" argument must be of type list[int], received type {}'.format(type(layers)))
+        if not isinstance(datatypes, list):
+            raise TypeError('"datatypes" argument must be of type list[int], received type {}'.format(type(datatypes)))
+        if not isinstance(names, list):
+            raise TypeError('"names" argument must be of type list[str], received type {}'.format(type(names)))
+        if not isinstance(colors, list):
+            raise TypeError('"colors" argument must be of type list[str], received type {}'.format(type(colors)))
 
 
         self.polygons: list[NDArray] = [np.asarray(p) for p in polygons]
@@ -693,3 +694,176 @@ class PolygonSet():
                 self.names[i] = name
 
         return self
+
+
+    def is_angle_pointing_inside(self,
+            poly_number: int,
+            port: int,
+            angle: np.number,
+        ) -> bool:
+        """
+        Determine whether a given absolute direction, given by angle, points
+        toward the interior of the polygon from a specific polygon edge, given
+        by port.
+
+        The test is performed by comparing the direction defined by `angle`
+        with the vector pointing from the midpoint of the selected edge to
+        the polygon centroid. If the dot product is positive, the direction
+        is considered to point inside the polygon.
+
+        Parameters
+        ----------
+        p : PolygonSet
+            Polygon container. The first polygon (self.polygons[poly_number]) is assumed
+            to be a 2D polygon defined by an (N, 2) NumPy array of vertices.
+        port : int
+            Index of the polygon edge to test. The edge is defined by the
+            vertices self.polygons[poly_number][port] → self.polygons[poly_number][port + 1].
+        angle : np.number
+            Absolute direction angle in radians, measured counterclockwise
+            from the positive x-axis.
+
+        Returns
+        -------
+        bool
+            True if the direction defined by `angle` points toward the interior
+            of the polygon from the selected edge, False if it points outward.
+        """
+        # Edge endpoints
+        p0 = self.polygons[poly_number][port]
+        p1 = self.polygons[poly_number][(port + 1) % len(self.polygons[poly_number])]
+
+        # Midpoint of the edge
+        edge_mid = 0.5 * (p0 + p1)
+
+        # Polygon centroid
+        centroid = self.polygons[poly_number].mean(axis=0)
+
+        # Direction vector from angle
+        v = np.array([np.cos(angle), np.sin(angle)])
+
+        # Vector pointing toward polygon interior
+        to_inside = centroid - edge_mid
+
+        return np.dot(v, to_inside) > 0
+
+
+    def snap_to(self,
+        port: int,
+        p2: 'PolygonSet',
+        port2: int,
+        show_port: bool=False,
+        ) -> 'PolygonSet':
+        """
+        Snap this polygon set (`self`) onto another polygon set (`p2`) by aligning
+        two polygon edges (called ports).
+        Only the first polygon of each polygonSet is considered.
+
+        Each port is defined by an edge of the first polygon in the corresponding.
+        The snapping procedure is:
+        1. Compute the midpoint of each port edge.
+        2. Determine the inward-pointing normal direction of each port.
+        3. Rotate `self` so that its port normal faces opposite to `p2`'s port normal.
+        4. Translate `self` so that both port midpoints coincide.
+
+        The method does not modify `p2`. The returned PolygonSet contains the
+        transformed version of `self` together with `p2`.
+
+        Parameters
+        ----------
+        port : int
+            Index of the edge (port) in `self.polygons[0]` used for snapping.
+            The edge is defined by vertices `port` → `port + 1`.
+        p2 : PolygonSet
+            Target polygon set onto which `self` is snapped.
+        port2 : int
+            Index of the edge (port) in `p2.polygons[0]` used for snapping.
+            The edge is defined by vertices `port2` → `port2 + 1`.
+        show_port : bool, optional
+            If True, draw arrow markers indicating the port directions.
+            This is useful for debugging geometry and orientation.
+
+        Returns
+        -------
+        PolygonSet
+            A new PolygonSet containing the transformed version of `self`
+            and the unchanged `p2`, snapped together along the specified ports.
+
+        Notes
+        -----
+        - Works for both convex and concave polygons.
+        - Polygon orientation (CW or CCW) is automatically handled.
+        - If the port direction is nearly tangent to the polygon boundary,
+        the normal direction may be numerically ambiguous.
+        """
+
+        # p2 = deepcopy(p2)
+
+        # Find port 1 center
+        x0 = self.polygons[0][port][0]
+        x1 = self.polygons[0][port+1][0]
+        xc1 = (x1 + x0)/2
+
+        y0 = self.polygons[0][port][1]
+        y1 = self.polygons[0][port+1][1]
+        yc1 = (y1 + y0)/2
+
+        # Find port 1 angle
+        theta1 = np.angle((x1 - x0) + 1j*(y1-y0))
+        if self.is_angle_pointing_inside(0, port, theta1 + np.pi/2):
+            dtheta1 = theta1 - np.pi/2
+        else:
+            dtheta1 = theta1 + np.pi/2
+
+        # Find port 2 center
+        x0 = p2.polygons[0][port2][0]
+        x1 = p2.polygons[0][port2+1][0]
+        xc2 = (x1 + x0)/2
+
+        y0 = p2.polygons[0][port2][1]
+        y1 = p2.polygons[0][port2+1][1]
+        yc2 = (y1 + y0)/2
+
+        # Find port 2 angle
+        theta2 = np.angle((x1 - x0) + 1j*(y1-y0))
+        if p2.is_angle_pointing_inside(0, port2, theta2 + np.pi/2):
+            dtheta2 = theta2 - np.pi/2
+        else:
+            dtheta2 = theta2 + np.pi/2
+
+        # Move
+        self.rotate(np.pi+dtheta2-dtheta1, center=(xc1, yc1))\
+        .translate(xc2-xc1, yc2-yc1)
+
+        p_out = self
+
+        # Add arrow on ports to help the snapping process
+        if show_port:
+
+            # Make arrow
+            tail_w = 4
+            tail_l = 10
+            head_w = 6
+            head_l = 4
+            arrow = PolygonSet([np.array([0,0])])
+            arrow > (0, -tail_w/2)
+            arrow > (tail_l, 0)
+            arrow > (0, -(head_w-tail_w))
+            arrow > (head_l, tail_w/2+(head_w-tail_w))
+            arrow > (-head_l, tail_w/2+(head_w-tail_w))
+            arrow > (0, -(head_w-tail_w))
+            arrow > (-tail_l, 0)
+
+            # Add arrow to self and p2 with correct layers
+            p_out += deepcopy(arrow)\
+                    .change_layer(layer=self.layers[0]+1)\
+                    .rotate(dtheta1)\
+                    .translate(xc1, yc1)\
+                    .rotate(np.pi+dtheta2-dtheta1, center=(xc1, yc1))\
+                    .translate(xc2-xc1, yc2-yc1)
+            p_out += deepcopy(arrow)\
+                    .change_layer(layer=p2.layers[0]+1)\
+                    .rotate(dtheta2)\
+                    .translate(xc2, yc2)
+
+        return p_out
